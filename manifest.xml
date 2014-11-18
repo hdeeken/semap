@@ -1,0 +1,19 @@
+<package>
+  <description brief="spatial_db">
+
+     spatial_db
+
+  </description>
+  <author>hdeeken</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/spatial_db</url>
+  <depend package="rospy"/>
+  <depend package="roslib"/>
+  
+  <rosdep name="python-sqlalchemy" />
+  <rosdep name="geoalchemy2" />
+ 
+</package>
+
+
