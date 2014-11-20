@@ -10,3 +10,4 @@ srv_gen/
 *.pyc
 *~
 *.swp
+src/spatial_db/
