@@ -14,7 +14,14 @@ from geoalchemy2.functions import ST_Distance, ST_AsText
 from db_environment import Session
 from db_model import *
 
-from geometry_msgs.msg import PoseStamped as ROSPose
+from geometry_msgs.msg import Point as ROSPoint
+from geometry_msgs.msg import Point32 as ROSPoint32
+from geometry_msgs.msg import Pose2D as ROSPose2D
+from geometry_msgs.msg import Pose as ROSPose
+from geometry_msgs.msg import Polygon as ROSPolygon
+from spatial_db.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel
+from spatial_db.msg import ObjectDescription as ROSObjectDescription
+from spatial_db.msg import ObjectInstance as ROSObjectInstance
 
 class cos(GenericFunction):
     name = 'cos'
@@ -41,6 +48,69 @@ class ST_Affine(GenericFunction):
     type = None
 
 session = Session()
+
+def test_point_model_functions():
+
+  a = Point2DModel()
+  a.type = 'object_point2d_1'
+  a.geometry.x = 17.0
+  a.geometry.y = 4.0
+  a.geometry.z = 11.0
+
+  b = Point3DModel()
+  b.type = 'object_point3d_1'
+  b.geometry.x = 17.0
+  b.geometry.y = 4.0
+  b.geometry.z = 12.0
+
+  c = Point3DModel()
+  c.type = 'object_point3d_2'
+  c.geometry.x = 19.0
+  c.geometry.y = 66.0
+  c.geometry.z = 12.0
+
+  desc_ros = ROSObjectDescription()
+  desc_ros.type = "first_desc"
+  desc_ros.point2d_models.append(a)
+  desc_ros.point3d_models.append(b)
+  desc_ros.point3d_models.append(c)
+
+  desc_db = ObjectDescription()
+  desc_db.fromROS(desc_ros)
+
+  session.add(desc_db)
+  session.commit()
+
+def test_polygon_model_functions():
+
+  point1 = ROSPoint32(0, 0, 0)
+  point2 = ROSPoint32(1, 0, 1)
+  point3 = ROSPoint32(1, 1, 0)
+  point4 = ROSPoint32(0, 1, 1)
+
+  polygon2dmodel = Polygon2DModel()
+  polygon2dmodel.type = 'point2dtest'
+  polygon2dmodel.geometry.points.append(point1)
+  polygon2dmodel.geometry.points.append(point2)
+  polygon2dmodel.geometry.points.append(point3)
+  polygon2dmodel.geometry.points.append(point4)
+
+  geo2dmodel = GeometryModel2D()
+  geo2dmodel.createFromPolygon2DModel(polygon2dmodel)
+
+  polygon3dmodel = Polygon3DModel()
+  polygon3dmodel.type = 'polygon3dtest'
+  polygon3dmodel.geometry.points.append(point1)
+  polygon3dmodel.geometry.points.append(point2)
+  polygon3dmodel.geometry.points.append(point3)
+  polygon3dmodel.geometry.points.append(point4)
+
+  geo3dmodel = GeometryModel3D()
+  geo3dmodel.createFromPolygon3DModel(polygon3dmodel)
+
+  session.add(geo2dmodel)
+  session.add(geo3dmodel)
+  session.commit()
 
 def test_object_query():
     o1 = aliased(ObjectInstance)
@@ -109,6 +179,8 @@ def create_a_dummy_object_instance():
     session.commit()
 
 if __name__ == "__main__":
-  #  create_a_dummy_object_instance()
-    test_object_query()
-    print 'done'
+  #create_a_dummy_object_instance()
+  #test_object_query()
+  test_point_model_functions()
+  #test_polygon_model_functions()
+  print 'done'
