@@ -1,3 +1,4 @@
+int32 id
 string alias
-geometry_msgs/Pose pose
+geometry_msgs/PoseStamped pose
 spatial_db/ObjectDescription description
