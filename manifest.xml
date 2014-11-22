@@ -11,6 +11,7 @@
   <depend package="rospy"/>
   <depend package="roslib"/>
   <depend package="geometry_msgs"/>
+  <depend package="shape_msgs"/>
   
   <rosdep name="python-sqlalchemy" />
   <rosdep name="geoalchemy2" />
