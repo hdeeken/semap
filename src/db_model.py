@@ -8,7 +8,6 @@ from geoalchemy2.types import Geometry
 from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, CompositeElement
 from geoalchemy2.functions import ST_Distance, ST_AsText
 from geoalchemy2.compat import buffer, bytes
-from geoalchemy2.shape import from_shape, to_shape
 
 from sets import Set
 from db_environment import Base
@@ -26,99 +25,134 @@ from spatial_db.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel,
 from spatial_db.msg import ObjectDescription as ROSObjectDescription
 from spatial_db.msg import ObjectInstance as ROSObjectInstance
 
-""" GeometryModel2D
-# holds the various possible 2d geometries that can be identified for an object
-# type: defines the purpose of this geometry (e.g. 2d footprint)
-# geometry_type: defines the underlying geometry (e.g. 2d polygon)
-# geometry: the geometry itself as binary blob
-"""
+from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix
 
-class GeometryModel2D(Base):
-  __tablename__ = 'geometry_model2d'
-  id = Column('id', Integer, primary_key=True)
-  type = Column('type', String)
-  geometry_type = Column('geometry_type', String)
-  geometry = Column('geometry', Geometry(geometry_type='GEOMETRY', dimension=2), nullable=False)
-  object_description_id = Column('object_decription_id', Integer, ForeignKey('object_description.id'))
-  object_description = relationship("ObjectDescription", backref=backref('geometry_models2d'))
+### GEOMETRY TABLES
 
-  def fromPoint2DModel(self, model):
-    self.type = model.type
-    self.geometry_type = 'POINT'
-    geometry_string = 'POINT(%f %f)' % (model.geometry.x, model.geometry.y)
-    #print geometry_string
-    self.geometry =  WKTElement(geometry_string)
-
-  def fromPolygon2DModel(self, model):
-    self.type = model.type
-    self.geometry_type = 'POLYGON'
-    prefix = 'POLYGON(('
-    infix=''
-    postfix = '%f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y)
-    for point in model.geometry.points:
-      infix = infix + '%f %f,' % ( point.x, point.y)
-    #print prefix + infix + postfix
-    self.geometry = WKTElement(prefix + infix + postfix)
-
-  def fromROSPose2DModel(self, model):
-    print 'a pose2d feature is currently not supported'
-
-  def toROSPoint2DModel(self):
-    ros = Point2DModel()
-    ros.type = self.type
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
-    point = as_text.strip('POINT (').strip(')').split(' ')
-    ros.geometry.x = point[0]
-    ros.geometry.y = point[1]
-    return ros
-
-  def toROSPose2DModel(self):
-    print 'a pose2d feature is currently not supported'
-    ros = Pose3DModel()
-    return ros
-
-  def toROSPolygon2DModel(self):
-    ros = Polygon2DModel()
-    ros.type = self.type
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
-    polygon = as_text.strip('POLYGON ((').strip('))').split(',')
-    for point in polygon[0:len(polygon)-1]:
-      values = point.split(' ')
-      ros.geometry.points.append(ROSPoint32(values[0],values[1], 0.0))
-    return ros
-
-""" GeometryModel3D
+""" GeometryModel
 # holds the various possible 3d geometries that can be identified for an object
 # type: defines the purpose of this geometry (e.g. 3d surface)
 # geometry_type: defines the underlying geometry (e.g. 3d triangle mesh)
 # geometry: the geometry itself as binary blob
 """
 
-class GeometryModel3D(Base):
-  __tablename__ = 'geometry_model3d'
+class GeometryModel(Base):
+  __tablename__ = 'geometry_model'
   id = Column('id', Integer, primary_key=True)
   type = Column('type ', String)
+  object_description_id = Column('object_decription_id', Integer, ForeignKey('object_description.id'), nullable=False)
+  object_description = relationship("ObjectDescription", backref=backref('geometry_models', order_by=type))
+  pose_id = Column('pose_id', Integer, ForeignKey('local_pose.id'), nullable=True)
+  pose = relationship("LocalPose", backref=backref('geometry_model', uselist=False))
   geometry_type = Column('geometry_type ', String)
   geometry = Column('geometry', Geometry(geometry_type='GEOMETRYZ', dimension=3), nullable=False)
-  object_description_id = Column('object_decription_id', Integer, ForeignKey('object_description.id'), nullable=False)
-  object_description = relationship("ObjectDescription", backref=backref('geometry_models3d', order_by=type))
+
+  # 2D Geometry
+
+  def fromPoint2DModel(self, model):
+    self.type = model.type
+    self.pose = LocalPose()
+    self.pose.pose = fromROSPose(nullPose())
+    self.geometry_type = 'POINT2D'
+    geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, 0.0)
+    self.geometry =  WKTElement(geometry_string)
+    print geometry_string
+
+  def toROSPoint2DModel(self):
+    ros = Point2DModel()
+    ros.type = self.type
+    session = Session()
+    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    point = as_text.strip('POINT Z(').strip(')').split(' ')
+    print as_text
+    ros.geometry.x = point[0]
+    ros.geometry.y = point[1]
+    ros.geometry.z = point[2]
+    return ros
+
+  def fromROSPose2DModel(self, model):
+    self.type = model.type
+    self.pose = LocalPose()
+    self.pose.pose = fromMatrix(euler_matrix(0.0, 0.0, model.pose.theta))
+    self.geometry_type = 'POSE2D'
+    geometry_string = 'POINT(%f %f %f)' % (model.pose.position.x, model.pose.position.y, 0.0)
+    self.geometry =  WKTElement(geometry_string)
+
+  def toROSPose2DModel(self):
+    ros = Point2DModel()
+    ros.type = self.type
+    matrix = toMatrix(self.pose.pose)
+    ros.pose.x = matrix[0][3]
+    ros.pose.y = matrix[1][3]
+    ros.pose.theta = euler_from_matrix()[2]
+    return ros
+
+  def fromPolygon2DModel(self, model):
+    self.type = model.type
+    self.pose = LocalPose()
+    self.pose.fromROS(model.pose)
+    self.geometry_type = 'POLYGON2D'
+    prefix = 'POLYGON(('
+    infix=''
+    postfix = '%f %f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y, 0.0)
+    for point in model.geometry.points:
+      infix = infix + '%f %f %f,' % ( point.x, point.y, 0.0)
+    self.geometry = WKTElement(prefix + infix + postfix)
+
+  def toROSPolygon2DModel(self):
+    ros = Polygon2DModel()
+    ros.type = self.type
+    ros.pose = self.pose.toROS()
+    session = Session()
+    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
+    for point in polygon[0:len(polygon)-1]:
+      values = point.split(' ')
+      ros.geometry.points.append(ROSPoint32(values[0],values[1], 0.0))
+    return ros
+
+  # 3D Geometry
 
   def fromROSPoint3DModel(self, model):
     self.type = model.type
-    self.geometry_type = 'POINTZ'
+    self.pose = LocalPose()
+    self.pose.fromROS(nullPose())
+    self.geometry_type = 'POINT3D'
     geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, model.geometry.z)
-    #print geometry_string
     self.geometry =  WKTElement(geometry_string)
 
+  def toROSPoint3DModel(self):
+    ros = Point3DModel()
+    ros.type = self.type
+    session = Session()
+    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    point = as_text.strip('POINT Z(').strip(')').split(' ')
+    ros.geometry.x = point[0]
+    ros.geometry.y = point[1]
+    ros.geometry.z = point[2]
+    return ros
+
   def fromROSPose3DModel(self, model):
-    print 'a pose3d feature is currently not supported'
+    self.type = model.type
+    self.pose = LocalPose()
+    self.pose.fromROS(model.pose)
+    self.geometry_type = 'POSE3D'
+    geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, model.geometry.z)
+    self.geometry =  WKTElement(geometry_string)
+
+  def toROSPose3DModel(self):
+    ros = Point3DModel()
+    ros.type = self.type
+    ros.pose = self.pose.toROS()
+    session = Session()
+    return ros
 
   def fromROSPolygon3DModel(self, model):
     self.type = model.type
-    self.geometry_type = 'POLYGONZ'
-    prefix = 'POLYGONZ(('
+    self.pose = LocalPose()
+    self.pose.fromROS(model.pose)
+    self.geometry_type = 'POLYGON3D'
+    prefix = 'POLYGON(('
     infix=''
     postfix = '%f %f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y, model.geometry.points[0].z)
     for point in model.geometry.points:
@@ -126,9 +160,23 @@ class GeometryModel3D(Base):
     #print prefix + infix + postfix
     self.geometry = WKTElement(prefix + infix + postfix)
 
+  def toROSPolygon3DModel(self):
+    ros = Polygon3DModel()
+    ros.type = self.type
+    ros.pose = self.pose.toROS()
+    session = Session()
+    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
+    for point in polygon[0:len(polygon)-1]:
+      s = point.split(' ')
+      ros.geometry.points.append(ROSPoint32(s[0],s[1],s[2]))
+    return ros
+
   def fromROSTriangleMesh3DModel(self, model):
     self.type = model.type
-    self.geometry_type = 'TINZ'
+    self.geometry_type = 'TRIANGLEMESH3D'
+    self.pose = LocalPose()
+    self.pose.fromROS(model.pose)
     prefix = 'TIN('
     postfix = ')'
     triangles = model.geometry.triangles
@@ -145,53 +193,10 @@ class GeometryModel3D(Base):
     #print prefix + infix + postfix
     self.geometry = WKTElement(prefix + infix + postfix)
 
-  def fromROSPolygonMesh3DModel(self, model):
-    self.type = model.type
-    self.geometry_type = 'POLYHEDRALSURFACEZ'
-    prefix = 'POLYHEDRALSURFACE('
-    postfix = ')'
-    polygons = model.geometry.polygons
-    polygon_strings = []
-    for polygon in polygons:
-      polygon_string = ''
-      for point in polygon.points:
-        polygon_string = polygon_string + '%f %f %f,' % ( point.x, point.y, point.z)
-      polygon_string= '(('+ polygon_string + '%f %f %f))' % ( polygon.points[0].x, polygon.points[0].y, polygon.points[0].z)
-      polygon_strings.append(polygon_string)
-    infix = ",".join(polygon_strings)
-    #print prefix + infix + postfix
-    self.geometry = WKTElement(prefix + infix + postfix)
-
-  def toROSPoint3DModel(self):
-    ros = Point3DModel()
-    ros.type = self.type
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
-    point = as_text.strip('POINTZ (').strip(')').split(' ')
-    ros.geometry.x = point[0]
-    ros.geometry.y = point[1]
-    ros.geometry.z = point[2]
-    return ros
-
-  def toROSPose3DModel(self):
-    print 'a pose3d feature is currently not supported'
-    ros = Pose3DModel()
-    return ros
-
-  def toROSPolygon3DModel(self):
-    ros = Polygon3DModel()
-    ros.type = self.type
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
-    polygon = as_text.strip('POLYGONZ ((').strip('))').split(',')
-    for point in polygon[0:len(polygon)-1]:
-      s = point.split(' ')
-      ros.geometry.points.append(ROSPoint32(s[0],s[1],s[2]))
-    return ros
-
   def toROSTriangleMesh3DModel(self):
     ros = TriangleMesh3DModel()
     ros.type = self.type
+    ros.pose = self.pose.toROS()
     session = Session()
     as_text = session.execute(ST_AsText(self.geometry)).scalar()
     triangles = as_text.split(')),')
@@ -214,20 +219,42 @@ class GeometryModel3D(Base):
       ros.geometry.triangles.append(ROSMeshTriangle(index))
     return ros
 
+  def fromROSPolygonMesh3DModel(self, model):
+    self.type = model.type
+    self.pose = LocalPose()
+    self.pose.fromROS(model.pose)
+    self.geometry_type = 'POLYGONMESH3D'
+    prefix = 'POLYHEDRALSURFACEZ('
+    postfix = ')'
+    polygons = model.geometry.polygons
+    polygon_strings = []
+    for polygon in polygons:
+      polygon_string = ''
+      for point in polygon.points:
+        polygon_string = polygon_string + '%f %f %f,' % ( point.x, point.y, point.z)
+      polygon_string= '(('+ polygon_string + '%f %f %f))' % ( polygon.points[0].x, polygon.points[0].y, polygon.points[0].z)
+      polygon_strings.append(polygon_string)
+    infix = ",".join(polygon_strings)
+    #print prefix + infix + postfix
+    self.geometry = WKTElement(prefix + infix + postfix)
+
   def toROSPolygonMesh3DModel(self):
     ros = PolygonMesh3DModel()
     ros.type = self.type
+    ros.pose = self.pose.toROS()
     session = Session()
     as_text = session.execute(ST_AsText(self.geometry)).scalar()
     polygons = as_text.split(')),')
     for polygon in polygons:
       ros_polygon = ROSPolygon()
-      points = polygon.strip('POLYHEDRALSURFACE Z(((').strip('))').split(',')
+      points = polygon.strip('POLYHEDRALSURFACEZ(((').strip('))').split(',')
       for point in points[0:len(points)-1]:
         point = point.split(' ')
         ros_polygon.points.append(ROSPoint32(point[0],point[1],point[2]))
       ros.geometry.polygons.append(ros_polygon)
     return ros
+
+### OBJECT TABLES
 
 """ ObjectDescription
 # defines the geometric appearence of a object of a specific type, and is the blueprint object instances
@@ -245,67 +272,65 @@ class ObjectDescription(Base):
   def fromROS(self, ros):
     self.type = ros.type
     for model in ros.point2d_models:
-        new = GeometryModel2D()
+        new = GeometryModel()
         new.fromPoint2DModel(model)
-        self.geometry_models2d.append(new)
-    for model in ros.point3d_models:
-        new = GeometryModel3D()
-        new.fromROSPoint3DModel(model)
-        self.geometry_models3d.append(new)
-    #for model in ros.pose2d_models:
-    #    self.geometry_model2d = GeometryModel2D().createFromPose2DModel(model)
-    #for model in ros.pose3d_models:
-    #    self.geometry_model3d = GeometryModelD().createFromPose3DModel(model)
+        self.geometry_models.append(new)
+    for model in ros.pose2d_models:
+        new = GeometryModel()
+        new.fromPose2DModel(model)
+        self.geometry_models.append(new)
     for model in ros.polygon2d_models:
-        new = GeometryModel2D()
+        new = GeometryModel()
         new.fromPolygon2DModel(model)
-        self.geometry_models2d.append(new)
+        self.geometry_models.append(new)
+    for model in ros.point3d_models:
+        new = GeometryModel()
+        new.fromROSPoint3DModel(model)
+        self.geometry_models.append(new)
+    for model in ros.pose3d_models:
+        new = GeometryModel()
+        new.fromROSPose3DModel(model)
+        self.geometry_models.append(new)
     for model in ros.polygon3d_models:
-        new = GeometryModel3D()
+        new = GeometryModel()
         new.fromROSPolygon3DModel(model)
-        self.geometry_models3d.append(new)
+        self.geometry_models.append(new)
     for model in ros.trianglemesh3d_models:
-        new = GeometryModel3D()
+        new = GeometryModel()
         new.fromROSTriangleMesh3DModel(model)
-        self.geometry_models3d.append(new)
+        self.geometry_models.append(new)
     for model in ros.polygonmesh3d_models:
-        new = GeometryModel3D()
+        new = GeometryModel()
         new.fromROSPolygonMesh3DModel(model)
-        self.geometry_models3d.append(new)
+        self.geometry_models.append(new)
     return
 
   def toROS(self):
-    print 'convert desc to ros'
     ros = ROSObjectDescription()
     ros.id = self.id
     ros.type = self.type
-    for model in self.geometry_models2d: # .filter(GeometryModel2D.geo_type='POINT'):
-      if model.geometry_type == 'POINT':
-        #print 'point2d'
+    for model in self.geometry_models:
+      if   model.geometry_type == 'POINT2D':
         ros.point2d_models.append(model.toROSPoint2DModel())
-      elif model.geometry_type == 'POSE':
+      elif model.geometry_type == 'POSE2D':
         #print 'pose2d'
         ros.pose2d_models.append(model.toROSPose2DModel())
-      elif model.geometry_type == 'POLYGON':
+      elif model.geometry_type == 'POLYGON2D':
         #print 'polygon2d'
         ros.polygon2d_models.append(model.toROSPolygon2DModel())
-      else:
-        print 'ERROR: found unknown geometry type:', model.geometry_type
-
-    for model in self.geometry_models3d: # .filter(GeometryModel2D.geo_type='POINT'):
-      if model.geometry_type == 'POINTZ':
+      elif model.geometry_type == 'POINT3D':
         #print 'point3d'
         ros.point3d_models.append(model.toROSPoint3DModel())
-      elif model.geometry_type == 'POSEZ':
+      elif model.geometry_type == 'POSE3D':
         #print 'pose3d'
         ros.point3d_models.append(model.toROSPose3DModel())
-      elif model.geometry_type == 'POLYGONZ':
+      elif model.geometry_type == 'POLYGON3D':
         #print 'polygon3d'
         ros.point3d_models.append(model.toROSPolygon3DModel())
-      elif model.geometry_type == 'TINZ':
+      elif model.geometry_type == 'TRIANGLEMESH3D':
         #print 'tin3d'
         ros.point3d_models.append(model.toROSTriangleMesh3DModel())
-      elif model.geometry_type == 'POLYHEDRALSURFACEZ':
+      elif model.geometry_type == 'POLYGONMESH3D"':
         #print 'poly3d'
         ros.point3d_models.append(model.toROSPolygonMesh3DModel())
       else:
@@ -324,15 +349,15 @@ class ObjectInstance(Base):
   id = Column('id', Integer, primary_key=True)
   alias = Column('alias', String, nullable=True)
   # pose of the object
-  pose_id = Column('pose_id', Integer, ForeignKey('pose.id'), nullable=True)
-  pose = relationship("Pose", backref=backref('geometry_model', uselist=False))
+  pose_id = Column('pose_id', Integer, ForeignKey('global_pose.id'), nullable=True)
+  pose = relationship("GlobalPose", backref=backref('object_instance', uselist=False))
   # object description
   object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=True)
   object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=False))
 
   def fromROS(self, ros):
     self.alias = ros.alias
-    pose = Pose()
+    pose = GlobalPose()
     pose.fromROS(ros.pose)
     self.pose = pose
     description = ObjectDescription()
@@ -347,47 +372,89 @@ class ObjectInstance(Base):
     ros.description = self.object_description.toROS()
     return ros
 
-  ## must be in instance level
-  ##  active_model2d_id = Column('active_model2d_id', Integer, ForeignKey('geometry_model2d.id'), nullable=True)
-  ##  active_model2d = relationship("GeometryModel2D", backref=backref('object_description', uselist=False))
-  ## must be in instance level
-  ##  active_model3d_id = Column('active_model3d_id', Integer, ForeignKey('geometry_model3d.id'), nullable=True)
-  ##  active_model3d = relationship("GeometryModel3D", backref=backref('object_description', uselist=False))
+### POSE TABLES
 
-class Pose(Base):
-  __tablename__ = 'pose'
+class LocalPose(Base):
+  __tablename__ = 'local_pose'
+  id = Column('id', Integer, primary_key=True)
+  pose = Column('pose', String)
+
+  def toROS(self):
+     return toROSPose(self.pose)
+
+  def fromROS(self, ros):
+    self.pose = fromROSPose(ros)
+    return
+
+class GlobalPose(Base):
+  __tablename__ = 'global_pose'
   id = Column('id', Integer, primary_key=True)
   ref_system = Column('ref_system', String)
   pose = Column('pose', String)
 
-  def setPose(self, float_array):
-    self.pose = ",".join(map(str, float_array))
-
-  def getPose(self):
-    return map(float, self.pose.split(','))
-
-  def fromROS(self, ros):
-    array = []
-    array.append(ros.pose.position.x)
-    array.append(ros.pose.position.y)
-    array.append(ros.pose.position.z)
-    array.append(ros.pose.orientation.x)
-    array.append(ros.pose.orientation.y)
-    array.append(ros.pose.orientation.z)
-    array.append(ros.pose.orientation.w)
-    self.setPose(array)
-    self.ref_system = ros.header.frame_id
-    return
-
   def toROS(self):
     ros = ROSPoseStamped()
-    array = self.getPose()
     ros.header.frame_id = self.ref_system
-    ros.pose.position.x = array[0]
-    ros.pose.position.y = array[1]
-    ros.pose.position.z = array[2]
-    ros.pose.orientation.x = array[3]
-    ros.pose.orientation.y = array[4]
-    ros.pose.orientation.z = array[5]
-    ros.pose.orientation.w = array[6]
+    ros.pose = toROSPose(self.pose)
     return ros
+  
+  def fromROS(self, ros):
+    self.ref_system = ros.header.frame_id
+    self.pose = fromROSPose(ros.pose)
+
+### POSE FUNCTIONS
+
+'''
+creates a transformation in form a 4x4 matrix
+first 3 values give the x,y, offset
+follwoing 9 values give the 3x3 rotation matrix
+the bottom line 0, 0, 0, 1 must be set after reading
+'''
+
+def fromMatrix(matrix):
+  string = '%f %f %f %f, %f %f %f %f, %f %f %f %f' \
+  % (matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3], \
+     matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3], \
+     matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3])
+  return string
+
+def toMatrix(string):
+  rows_ = string.split(',')
+  abc_xoff = [float(x) for x in rows_[0].split()]
+  def_yoff = [float(x) for x in rows_[1].split()]
+  ghi_zoff = [float(x) for x in rows_[2].split()]
+  matrix = [abc_xoff, def_yoff, ghi_zoff,[0,0,0,1]]
+  return matrix
+  
+def fromROSPose(ros_pose):
+  quaternion = [ros_pose.orientation.x, ros_pose.orientation.y, \
+          ros_pose.orientation.z, ros_pose.orientation.w]
+  matrix = quaternion_matrix(quaternion)
+  matrix[0][3] = ros_pose.position.x
+  matrix[0][3] = ros_pose.position.y
+  matrix[0][3] = ros_pose.position.z
+  return fromMatrix(matrix)
+
+def toROSPose(db_pose):
+  ros_pose = ROSPose()
+  matrix = toMatrix(db_pose)
+  quaternion = quaternion_from_matrix(matrix)
+  ros_pose.position.x = matrix[0][3]
+  ros_pose.position.y = matrix[1][3]
+  ros_pose.position.z = matrix[2][3]
+  ros_pose.orientation.x = quaternion[0]
+  ros_pose.orientation.y = quaternion[1]
+  ros_pose.orientation.z = quaternion[2]
+  ros_pose.orientation.w = quaternion[3]
+  return ros_pose
+
+def nullPose():
+  ros_pose = ROSPose()
+  ros_pose.position.x = 0.0
+  ros_pose.position.y = 0.0
+  ros_pose.position.z = 0.0
+  ros_pose.orientation.x = 0.0
+  ros_pose.orientation.y = 0.0
+  ros_pose.orientation.z = 0.0
+  ros_pose.orientation.w = 1.0
+  return ros_pose
