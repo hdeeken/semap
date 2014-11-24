@@ -1,2 +1,2 @@
 string type
-geometry_msgs/Pose2D geometry
+geometry_msgs/Pose2D pose
