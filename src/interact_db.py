@@ -26,6 +26,7 @@ from spatial_db.msg import PolygonMesh as ROSPolygonMesh
 from spatial_db.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
 from spatial_db.msg import ObjectDescription as ROSObjectDescription
 from spatial_db.msg import ObjectInstance as ROSObjectInstance
+from spatial_db.msg import ObjectInstanceOverview as ROSObjectInstanceOverview
 
 class cos(GenericFunction):
     name = 'cos'
@@ -53,19 +54,34 @@ class ST_Affine(GenericFunction):
 
 session = Session()
 
-def test_object_instance_insertion():
+#int32 num_objects #total number of object instances in db
+#string[] object_types #currently instanciated object types
+#int32[] objects_per_type # and thier counts
+#ObjectInstances instances_without_geometry # names, aliases and poses
 
+#def test_object_instance_overview():
+#  for inst, desc, geo2d in session.query(ObjectInstance, ObjectDescription, GeometryModel).\
+#    filter(ObjectInstance.object_description_id == ObjectDescription.id).\
+#    filter(ObjectDescription.id == GeometryModel.object_description_id):
+#    print inst.alias
+#    print desc.type
+#    print geo2d.type
+  #for inst_types in session.query(ObjectDescription.types).filter()):
+  #  print num_objects
+    #for type in types:
+    #  print type
+
+def test_object_instance_insertion():
+  
   point2dmodel = Point2DModel()
   point2dmodel.type = '2dpoint'
   point2dmodel.geometry.x = 17.0
   point2dmodel.geometry.y = 4.0
   point2dmodel.geometry.z = 11.0
 
-  point3dmodel = Point3DModel()
-  point3dmodel.type = '3dpoint'
-  point3dmodel.geometry.x = 19.0
-  point3dmodel.geometry.y = 66.0
-  point3dmodel.geometry.z = 12.0
+  pose2dmodel = Pose2DModel()
+  pose2dmodel.type = '2dpose'
+  pose2dmodel.pose = ROSPose()
 
   point0 = ROSPoint32(0, 0, 0)
   point1 = ROSPoint32(1, 0, 1)
@@ -88,9 +104,22 @@ def test_object_instance_insertion():
 
   polygon2dmodel = Polygon2DModel()
   polygon2dmodel.type = '2dpolygon'
+  polygon2dmodel.pose = ROSPose()
   polygon2dmodel.geometry = polygon0
+
+  point3dmodel = Point3DModel()
+  point3dmodel.type = '3dpoint'
+  point3dmodel.geometry.x = 19.0
+  point3dmodel.geometry.y = 66.0
+  point3dmodel.geometry.z = 12.0
+
+  pose3dmodel = Pose3DModel()
+  pose3dmodel.type = '3dpoint'
+  pose3dmodel.pose = ROSPose()
+
   polygon3dmodel = Polygon3DModel()
   polygon3dmodel.type = '3dpolygon'
+  polygon3dmodel.pose = ROSPose()
   polygon3dmodel.geometry = polygon1
 
   tri0 = ROSMeshTriangle()
@@ -105,6 +134,7 @@ def test_object_instance_insertion():
 
   trianglemesh3dmodel = TriangleMesh3DModel()
   trianglemesh3dmodel.type = '3dtrianglemesh'
+  trianglemesh3dmodel.pose = ROSPose()
   trianglemesh3dmodel.geometry.vertices.append(point0)
   trianglemesh3dmodel.geometry.vertices.append(point1)
   trianglemesh3dmodel.geometry.vertices.append(point2)
@@ -114,6 +144,7 @@ def test_object_instance_insertion():
 
   polygonmesh3dmodel = PolygonMesh3DModel()
   polygonmesh3dmodel.type = '3dpolygonmesh'
+  polygonmesh3dmodel.pose = ROSPose()
   polygonmesh3dmodel.geometry.polygons.append(polygon0)
   polygonmesh3dmodel.geometry.polygons.append(polygon1)
 
@@ -141,10 +172,6 @@ def test_object_instance_insertion():
   inst_ros.pose = pose
   inst_ros.description = desc_ros
 
-  db_pose = Pose()
-  db_pose.ref_system = 'origin'
-  db_pose.pose = '1,2,1,0,0,0,1'
-
   # create instance from ROS
   inst_db0 = ObjectInstance()
   inst_db0.fromROS(inst_ros)
@@ -154,7 +181,12 @@ def test_object_instance_insertion():
   inst_db1 = ObjectInstance()
   inst_db1.object_description_id = 1
   inst_db1.alias = "mrs_objecto"
-  inst_db1.pose = db_pose
+  inst_db1.pose = GlobalPose()
+  pose.pose.position.x = "1.0"
+  pose.pose.position.y = "1.0"
+  pose.pose.position.z = "0.0"
+  inst_db1.pose.pose = fromROSPose(pose.pose)
+  inst_db1.pose.ref_system = 'origin'
   #session.add(inst_db1)
   session.commit()
 
@@ -255,7 +287,7 @@ def test_point_model_functions():
 
   for i in session.query(ObjectDescription).filter(ObjectDescription.id==4):
       print i.type
-      new = GeometryModel3D()
+      new = GeometryModel()
       new.fromROSPolygon3DModel(polygon3dmodel)
       i.geometry_models3d.append(new)
       session.commit()
@@ -277,8 +309,39 @@ def test_point_model_functions():
 
   session.commit()
 
-def test_polygon_model_functions():
+def test_pose_model_functions():
+  pose2d = ROSPose2D()
+  pose2d.x = 5.0
+  pose2d.x = 2.0
+  pose2d.theta = 2.0
 
+  pose2dmodel = Pose2DModel()
+  
+  pose2dmodel.type = 'pose2dtest'
+  pose2dmodel.geometry = pose2d
+  
+  #geo2dmodel = GeometryModel()
+  #geo2dmodel.fromPolygon2DModel(polygon2dmodel)
+
+  pose3d = ROSPose()
+  pose3d.position.x = 5.0
+  pose3d.position.y = 2.0
+  pose3d.position.z = 1.0
+  pose3d.orientation.x = 0.0
+  pose3d.orientation.y = 0.0
+  pose3d.orientation.z = 0.0
+  pose3d.orientation.w = 1.0
+
+  pose3dmodel = Pose3DModel()
+  pose3dmodel.type = 'pose3dtest'
+  pose3dmodel.geometry = pose3d
+  geo3dmodel = GeometryModel()
+  geo3dmodel.fromROSPose3DModel(pose3dmodel)
+
+  pose3dreturn = geo3dmodel.toROSPose3DModel()
+  print pose3dreturn
+
+def test_polygon_model_functions():
   point1 = ROSPoint32(0, 0, 0)
   point2 = ROSPoint32(1, 0, 1)
   point3 = ROSPoint32(1, 1, 0)
@@ -291,7 +354,7 @@ def test_polygon_model_functions():
   polygon2dmodel.geometry.points.append(point3)
   polygon2dmodel.geometry.points.append(point4)
 
-  geo2dmodel = GeometryModel2D()
+  geo2dmodel = GeometryModel()
   geo2dmodel.fromPolygon2DModel(polygon2dmodel)
 
   polygon3dmodel = Polygon3DModel()
@@ -301,7 +364,7 @@ def test_polygon_model_functions():
   polygon3dmodel.geometry.points.append(point3)
   polygon3dmodel.geometry.points.append(point4)
 
-  geo3dmodel = GeometryModel3D()
+  geo3dmodel = GeometryModel()
   geo3dmodel.fromROSPolygon3DModel(polygon3dmodel)
 
   session.add(geo2dmodel)
@@ -334,7 +397,7 @@ def test_mesh_model_functions():
   mesh3dmodel.geometry.triangles.append(tri1)
   mesh3dmodel.geometry.triangles.append(tri2)
 
-  geo3dmodel = GeometryModel3D()
+  geo3dmodel = GeometryModel()
   geo3dmodel.fromTriangleMesh3DModel(mesh3dmodel)
 
   session.add(geo3dmodel)
@@ -378,11 +441,11 @@ def test_object_query():
 #sqlstring = select([regionTable], func.ST_DWithin(regionTable.c.geo_loc, 'POINT(-74.78886216922375 40.32829276931833)', 1609*50 ))
 
 def create_a_dummy_object_instance():
-    geo2d = GeometryModel2D()
+    geo2d = GeometryModel()
     geo2d.type = 'position2d'
     geo2d.geometry_type = 'POINT'
     geo2d.geometry = WKTElement('POINT(0 0)')
-    geo3d = GeometryModel3D()
+    geo3d = GeometryModel()
     geo3d.type = 'primitive3d'
     geo3d.geometry_type = 'POINTZ'
     #geo3d.geometry_type = 'LINESTRINGZ'
@@ -411,11 +474,12 @@ def create_a_dummy_object_instance():
 if __name__ == "__main__":
   #test_point_model_functions()
   #test_polygon_model_functions()
+  #test_pose_model_functions()
   #test_mesh_model_functions()
-
   #test_object_query()
   #create_a_dummy_object_instance()
-  #test_object_instance_insertion()
+  test_object_instance_insertion()
   #test_get_object_instances()
   test_get_object_extraction()
+  #test_object_instance_overview()
   print 'done'
