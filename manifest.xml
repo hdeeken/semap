@@ -13,7 +13,8 @@
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
   <depend package="shape_msgs"/>
-  
+  <depend package="visualization_msgs"/>
+
   <rosdep name="python-sqlalchemy" />
   <rosdep name="geoalchemy2" />
  
