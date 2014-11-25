@@ -7,9 +7,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import aliased
 
 from geoalchemy2 import Geometry
-from geoalchemy2.functions import GenericFunction
+#from geoalchemy2.functions import GenericFunction
 from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, CompositeElement
 from geoalchemy2.functions import ST_Distance, ST_AsText
+from postgis_functions import *
 
 from db_environment import Session
 from db_model import *
@@ -28,29 +29,7 @@ from spatial_db.msg import ObjectDescription as ROSObjectDescription
 from spatial_db.msg import ObjectInstance as ROSObjectInstance
 from spatial_db.msg import ObjectInstanceOverview as ROSObjectInstanceOverview
 
-class cos(GenericFunction):
-    name = 'cos'
-    type = None
-
-class sin(GenericFunction):
-    name = 'sin'
-    type = None
-
-class pi(GenericFunction):
-    name = 'pi'
-    type = None
-
-class ST_3DDistance(GenericFunction):
-    name = 'ST_3DDistance'
-    type = None
-
-class ST_3DIntersection(GenericFunction):
-    name = 'ST_3DIntersection'
-    type = None
-
-class ST_Affine(GenericFunction):
-    name = 'ST_Affine'
-    type = None
+from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix
 
 session = Session()
 
@@ -71,8 +50,20 @@ session = Session()
     #for type in types:
     #  print type
 
+def nullPose():
+  ros_pose = ROSPose()
+  ros_pose.position.x = 0.0
+  ros_pose.position.y = 0.0
+  ros_pose.position.z = 0.0
+  ros_pose.orientation.x = 0.0
+  ros_pose.orientation.y = 0.0
+  ros_pose.orientation.z = 0.0
+  ros_pose.orientation.w = 1.0
+  return ros_pose
+
+
 def test_object_instance_insertion():
-  
+
   point2dmodel = Point2DModel()
   point2dmodel.type = '2dpoint'
   point2dmodel.geometry.x = 17.0
@@ -81,7 +72,10 @@ def test_object_instance_insertion():
 
   pose2dmodel = Pose2DModel()
   pose2dmodel.type = '2dpose'
-  pose2dmodel.pose = ROSPose()
+  pose2dmodel.pose = ROSPose2D()
+  pose2dmodel.pose.x = 0.5
+  pose2dmodel.pose.y = 1.5
+  pose2dmodel.pose.theta = 0.5
 
   point0 = ROSPoint32(0, 0, 0)
   point1 = ROSPoint32(1, 0, 1)
@@ -114,12 +108,14 @@ def test_object_instance_insertion():
   point3dmodel.geometry.z = 12.0
 
   pose3dmodel = Pose3DModel()
-  pose3dmodel.type = '3dpoint'
+  pose3dmodel.type = '3dpose'
   pose3dmodel.pose = ROSPose()
+  pose3dmodel.pose.position.x = 15.0
 
   polygon3dmodel = Polygon3DModel()
   polygon3dmodel.type = '3dpolygon'
   polygon3dmodel.pose = ROSPose()
+  polygon3dmodel.pose.position.x = 6.0
   polygon3dmodel.geometry = polygon1
 
   tri0 = ROSMeshTriangle()
@@ -145,14 +141,21 @@ def test_object_instance_insertion():
   polygonmesh3dmodel = PolygonMesh3DModel()
   polygonmesh3dmodel.type = '3dpolygonmesh'
   polygonmesh3dmodel.pose = ROSPose()
+  rand_quat = random_quaternion()
+  polygonmesh3dmodel.pose.orientation.x = rand_quat[0]
+  polygonmesh3dmodel.pose.orientation.y = rand_quat[1]
+  polygonmesh3dmodel.pose.orientation.z = rand_quat[2]
+  polygonmesh3dmodel.pose.orientation.w = rand_quat[3]
   polygonmesh3dmodel.geometry.polygons.append(polygon0)
   polygonmesh3dmodel.geometry.polygons.append(polygon1)
 
   desc_ros = ROSObjectDescription()
   desc_ros.type = "test_description"
   desc_ros.point2d_models.append(point2dmodel)
-  desc_ros.point3d_models.append(point3dmodel)
+  desc_ros.pose2d_models.append(pose2dmodel)
   desc_ros.polygon2d_models.append(polygon2dmodel)
+  desc_ros.point3d_models.append(point3dmodel)
+  desc_ros.pose3d_models.append(pose3dmodel)
   desc_ros.polygon3d_models.append(polygon3dmodel)
   desc_ros.trianglemesh3d_models.append(trianglemesh3dmodel)
   desc_ros.polygonmesh3d_models.append(polygonmesh3dmodel)
@@ -191,20 +194,21 @@ def test_object_instance_insertion():
   session.commit()
 
 def test_get_object_instances():
-  print 'hehe'
   for inst in session.query(ObjectInstance):
       desc = inst.object_description
       print 'ObjectInstance #',inst.id, 'has alias', inst.alias
       print 'Pose: ', inst.pose
       print 'ObjectDescription #',desc.id, 'has type', desc.type
-      print 'and', len(desc.geometry_models2d), '2d models'
-      for model in desc.geometry_models2d:
-          print '    2DModel #', model.id, model.type, model.geometry_type
-      print 'and', len(desc.geometry_models3d), '3d models'
-      for model in desc.geometry_models3d:
-          print '    3DModel #', model.id, model.type, model.geometry_type
+      print 'and', len(desc.geometry_models), 'geometry models'
+      for model in desc.geometry_models:
+          print '    Model #', model.id, model.type, model.geometry_type
+          print '           ', model.pose.pose
+          print '           ', session.execute(ST_AsText(model.geometry)).scalar()
+          print
+          print '           ', session.execute(ST_AsText(model.pose.apply(model.geometry))).scalar()
 
 def test_get_object_extraction():
+
   for db in session.query(ObjectInstance):
     instance = db.toROS()
     desc = instance.description
@@ -217,9 +221,10 @@ def test_get_object_extraction():
       print '  ', point2d.geometry
     for pose2d in desc.pose2d_models:
       print '  ', pose2d.type
-      print '  ', pose2d.geometry
+      print '  ', pose2d.pose
     for polygon2d in desc.polygon2d_models:
       print '  ', polygon2d.type
+      print '  ', polygon2d.pose
       print '  ', polygon2d.geometry
     print 'and these 3d models:'
     for point3d in desc.point3d_models:
@@ -227,15 +232,19 @@ def test_get_object_extraction():
       print '  ', point3d.geometry
     for pose3d in desc.pose3d_models:
       print '  ', pose3d.type
-      print '  ', pose3d.geometry
+      print '  ', pose3d.pose
+    print 'there are n plygon models n=', len(desc.polygon3d_models)
     for polygon3d in desc.polygon3d_models:
-      print '  ', polygon2d.type
+      print '  ', polygon3d.type
+      print '  ', polygon3d.pose
       print '  ', polygon2d.geometry
     for trianglemesh3d in desc.trianglemesh3d_models:
       print '  ', trianglemesh3d.type
+      print '  ', trianglemesh3d.pose
       print '  ', trianglemesh3d.geometry
     for polygonmesh3d in desc.polygonmesh3d_models:
       print '  ', polygonmesh3d.type
+      print '  ', polygonmesh3d.pose
       print '  ', polygonmesh3d.geometry
 
 def test_point_model_functions():
@@ -316,10 +325,10 @@ def test_pose_model_functions():
   pose2d.theta = 2.0
 
   pose2dmodel = Pose2DModel()
-  
+
   pose2dmodel.type = 'pose2dtest'
   pose2dmodel.geometry = pose2d
-  
+
   #geo2dmodel = GeometryModel()
   #geo2dmodel.fromPolygon2DModel(polygon2dmodel)
 
@@ -367,8 +376,8 @@ def test_polygon_model_functions():
   geo3dmodel = GeometryModel()
   geo3dmodel.fromROSPolygon3DModel(polygon3dmodel)
 
-  session.add(geo2dmodel)
-  session.add(geo3dmodel)
+  #session.add(geo2dmodel)
+  #session.add(geo3dmodel)
   session.commit()
 
 def test_mesh_model_functions():
@@ -478,8 +487,9 @@ if __name__ == "__main__":
   #test_mesh_model_functions()
   #test_object_query()
   #create_a_dummy_object_instance()
-  test_object_instance_insertion()
-  #test_get_object_instances()
+
+  #test_object_instance_insertion()
+  #est_get_object_instances()
   test_get_object_extraction()
   #test_object_instance_overview()
   print 'done'
