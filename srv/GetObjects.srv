@@ -1,5 +1,0 @@
-## optional filter by...
-string[] names
-string[] types
----
-spatial_db/Object[] objects
