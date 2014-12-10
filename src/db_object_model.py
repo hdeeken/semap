@@ -30,6 +30,7 @@ from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
 from db_pose_model import *
+from db_transformation_tree_model import *
 from db_geometry_model import *
 
 ### OBJECT TABLES
@@ -119,25 +120,25 @@ class ObjectInstance(Base):
   __tablename__ = 'object_instance'
   id = Column('id', Integer, primary_key=True)
   alias = Column('alias', String, nullable=True)
-  pose_id = Column('pose_id', Integer, ForeignKey('global_pose.id'), nullable=True)
-  pose = relationship("GlobalPose", backref=backref('object_instance', uselist=False))
+  frame_id = Column('frame_id', Integer, ForeignKey('tree.id'), nullable=True)
+  frame = relationship("FrameNode", backref=backref('object_instance', uselist=False))
   object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=True)
   object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=False))
 
   def fromROS(self, ros):
     self.alias = ros.alias
-    pose = GlobalPose()
-    pose.fromROS(ros.pose)
-    self.pose = pose
     description = ObjectDescription()
     description.fromROS(ros.description)
     self.object_description = description
+    frame = FrameNode('','')
+    frame.fromROSPoseStamped(ros.pose, self.object_description.type + str(self.id))
+    self.frame = frame
     return
 
   def toROS(self):
     ros = ROSObjectInstance()
     ros.id = self.id
     ros.alias = str(self.alias)
-    ros.pose = self.pose.toROS()
+    ros.pose = self.frame.toROSPoseStamped()
     ros.description = self.object_description.toROS()
     return ros

@@ -294,8 +294,8 @@ class FrameNode(Base):
 
     def __init__(self, name, transform, parent = None):
         self.name = name
-        self.parent = parent
         self.transform = transform
+        self.parent = parent
 
     def __repr__(self):
       if self.parent != None:
@@ -362,7 +362,41 @@ class FrameNode(Base):
 
   ## FUNCTIONS
 
-    def toROS():
+    def fromROSPoseStamped(self, pose, name):
+
+      try:
+        parent = session.query(FrameNode).filter_by(name = pose.header.frame_id).one()
+        translation = [pose.pose.position.x, \
+                     pose.pose.position.y, \
+                     pose.pose.position.z]
+        rotation = [pose.pose.orientation.x, \
+                     pose.pose.orientation.y, \
+                     pose.pose.orientation.z, \
+                     pose.pose.orientation.w]
+
+        self.name = name
+        self.parent = parent
+        self.transform = fromTransformToString([translation, rotation])
+        return self
+      except NoResultFound, e:
+        print 'add_transform failed to find source frame:', pose.header.frame_id
+        print 'error:', e
+      return None
+
+    def toROSPoseStamped(self):
+      transform = fromStringToTransform(self.transform)
+      ros = PoseStamped()
+      ros.header.frame_id = self.parent.name
+      ros.pose.position.translation.x = transform[0][0]
+      ros.pose.position.y = transform[0][1]
+      ros.pose.position.z = transform[0][2]
+      ros.pose.orientation.x = transform[1][0]
+      ros.pose.orientation.y = transform[1][1]
+      ros.pose.orientation.z = transform[1][2]
+      ros.pose.orientation.w = transform[1][3]
+      return ros
+
+    def toROSTransformStamped(self):
       transform = fromStringToTransform(self.transform)
       ros = TransformStamped()
       ros.header.frame_id = self.parent.name
