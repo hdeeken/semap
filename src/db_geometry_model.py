@@ -209,12 +209,17 @@ class GeometryModel(Base):
         point = [float(x) for x in point.split()]
         if point not in vertices:
           vertices.append(point)
-          ros.geometry.vertices.append(ROSPoint(point[0],point[1],point[2]))
           index.append(vertices.index(point))
+          ros_point = ROSPoint()
+          ros_point.x = point[0]
+          ros_point.y = point[1]
+          ros_point.z = point[2]
+          ros.geometry.vertices.append(ros_point)
         else:
           index.append(vertices.index(point))
-      indices.append(index)
-      ros.geometry.triangles.append(ROSMeshTriangle(index))
+      ros_index = ROSMeshTriangle()
+      ros_index.vertex_indices = index
+      ros.geometry.triangles.append(ros_index)
     return ros
 
   def fromROSPolygonMesh3DModel(self, model):
@@ -247,7 +252,11 @@ class GeometryModel(Base):
       ros_polygon = ROSPolygon()
       points = polygon.strip('POLYHEDRALSURFACE Z(((').strip('))').split(',')
       for point in points[0:len(points)-1]:
-        point = point.split(' ')
-        ros_polygon.points.append(ROSPoint32(point[0],point[1],point[2]))
+        point = [float(x) for x in point.split()]
+        ros_point = ROSPoint32()
+        ros_point.x = point[0]
+        ros_point.y = point[1]
+        ros_point.z = point[2]
+        ros_polygon.points.append(ros_point)
       ros.geometry.polygons.append(ros_polygon)
     return ros
