@@ -11,8 +11,6 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-#from db_environment import Base
-#from db_environment import Session
 from geometry_msgs.msg import Point as ROSPoint
 from geometry_msgs.msg import Point32 as ROSPoint32
 from geometry_msgs.msg import Pose2D as ROSPose2D
@@ -29,7 +27,6 @@ from spatial_db.msg import ObjectInstance as ROSObjectInstance
 from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
-#from db_object_model import *
 from db_pose_model import *
 
 ### GEOMETRY TABLES
@@ -61,7 +58,6 @@ class GeometryModel(Base):
     self.geometry_type = 'POINT2D'
     geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, 0.0)
     self.geometry =  WKTElement(geometry_string)
-    #print geometry_string
 
   def toROSPoint2DModel(self):
     ros = Point2DModel()
@@ -69,7 +65,6 @@ class GeometryModel(Base):
     session = Session()
     as_text = session.execute(ST_AsText(self.geometry)).scalar()
     point = [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
-    #print as_text
     ros.geometry.x = point[0]
     ros.geometry.y = point[1]
     ros.geometry.z = point[2]
@@ -165,7 +160,6 @@ class GeometryModel(Base):
     postfix = '%f %f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y, model.geometry.points[0].z)
     for point in model.geometry.points:
       infix = infix + '%f %f %f,' % ( point.x, point.y, point.z)
-    #print prefix + infix + postfix
     self.geometry = WKTElement(prefix + infix + postfix)
 
   def toROSPolygon3DModel(self):
@@ -198,7 +192,6 @@ class GeometryModel(Base):
                  vertices[indices[2]].x, vertices[indices[2]].y, vertices[indices[2]].z, \
                  vertices[indices[0]].x, vertices[indices[0]].y, vertices[indices[0]].z))
     infix = ",".join(triangle_strings)
-    #print prefix + infix + postfix
     self.geometry = WKTElement(prefix + infix + postfix)
 
   def toROSTriangleMesh3DModel(self):
@@ -209,9 +202,6 @@ class GeometryModel(Base):
     as_text = session.execute(ST_AsText(self.geometry)).scalar()
     triangles = as_text.split(')),')
     vertices = []
-    indices = []
-    ros_vertices = []
-    ros_indices = []
     for triangle in triangles:
       index = []
       points = triangle.strip('TIN Z(((').strip('))').split(',')
@@ -243,7 +233,6 @@ class GeometryModel(Base):
       polygon_string= '(('+ polygon_string + '%f %f %f))' % ( polygon.points[0].x, polygon.points[0].y, polygon.points[0].z)
       polygon_strings.append(polygon_string)
     infix = ",".join(polygon_strings)
-    #print prefix + infix + postfix
     self.geometry = WKTElement(prefix + infix + postfix)
 
   def toROSPolygonMesh3DModel(self):
