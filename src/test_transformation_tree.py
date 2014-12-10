@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 
-#import roslib; roslib.load_manifest('spatial_db')
-
 from db_environment import Base
 from db_environment import Session
+from db_model import create_all, drop_all
 
 from db_transformation_tree_model import *
 from sqlalchemy.orm import aliased
 
-from sqlalchemy import Column, ForeignKey, Integer, String, func #, create_engine
-from sqlalchemy.orm import relationship, backref,\
-                                joinedload_all
-#from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy import Column, ForeignKey, Integer, String, func
+from sqlalchemy.orm import relationship, backref, joinedload_all
 
-session = Session()
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 def msg(msg, *args):
   msg = msg % args
@@ -22,127 +18,87 @@ def msg(msg, *args):
   print(msg)
   print("-" * len(msg.split("\n")[0]))
 
-def original_example():
-    msg("Creating Tree Table:")
-
-    node = TreeNode('rootnode')
-    TreeNode('node1', parent=node)
-    TreeNode('node3', parent=node)
-
-    node2 = TreeNode('node2')
-    TreeNode('subnode1', parent=node2)
-    node.children['node2'] = node2
-    TreeNode('subnode2', parent=node.children['node2'])
-
-    msg("Created new tree structure:\n%s", node.dump())
-
-    msg("flush + commit:")
-
-    session.add(node)
-    session.commit()
-
-    msg("Tree After Save:\n %s", node.dump())
-
-    TreeNode('node4', parent=node)
-    TreeNode('subnode3', parent=node.children['node4'])
-    TreeNode('subnode4', parent=node.children['node4'])
-    TreeNode('subsubnode1', parent=node.children['node4'].children['subnode3'])
-
-    msg("Tree after adding some subnodes:\n %s", node.dump())
-
-    # remove node1 from the parent, which will trigger a delete
-    # via the delete-orphan cascade.
-    del node.children['node1']
-
-    msg("Removed node1.  flush + commit:")
-    session.commit()
-
-    msg("Tree after save:\n %s", node.dump())
-
-    msg("Emptying out the session entirely, "
-        "selecting tree on root, using eager loading to join four levels deep.")
-    session.expunge_all()
-    node = session.query(TreeNode).\
-                        options(joinedload_all("children", "children",
-                                                "children", "children")).\
-                        filter(TreeNode.name == "rootnode").\
-                        first()
-
-    msg("Full Tree:\n%s", node.dump())
-
-    msg("Marking root node as deleted, flush + commit:")
-
-    session.delete(node)
-    session.commit()
-
 def create_tree():
   msg("Creating Tree Table:")
 
-  node = TreeNode('rootnode', 0)
-  TreeNode('node1', parent=node, pose=1)
+  create_root_node('world')
 
-  node2 = TreeNode('node2', pose=2)
-  TreeNode('subnode1', parent=node2, pose = 0)
-  node.children['node2'] = node2
-  subnode2 = TreeNode('subnode2', parent=node.children['node2'], pose=1)
-  subsubnode = TreeNode('subsubnode', parent=node2.children['subnode2'], pose=1)
-  subsubsubnode = TreeNode('subsubsubnode', parent=node2.children['subnode2'].children['subsubnode'], pose=5)
-  TreeNode('subsubsubsubnode', parent=subsubsubnode, pose=2)
+  test_ros_insert('world', 'floor0', [0,0,0], [0,0,0,1])
+  test_ros_insert('world', 'floor1', [0,0,5], [0,0,0,1])
 
-  session.add(node)
-  session.commit()
+  test_ros_insert('floor0', 'room0', [0,0,0], [0,0,0,1])
+  test_ros_insert('floor1', 'room1', [0,0,0], [0,0,0,1])
 
-  msg("Tree After Save:\n %s", node.dump())
+  test_ros_insert('room0', 'table0', [0,1,1], [0,0,0,1])
+  test_ros_insert('room1', 'table1', [1,0,0], [0,0,0,1])
+
+  test_ros_insert('room0', 'mug0', [1,0,1], [0,0,0,1])
+  test_ros_insert('table1', 'mug1', [0,0,1], [0,0,0,1])
+
+def test_ros_insert(source_frame, target_frame, translation, rotation):
+  tf = TransformStamped()
+  tf.header.frame_id = source_frame
+  tf.child_frame_id = target_frame
+  tf.transform.translation.x = translation[0]
+  tf.transform.translation.y = translation[1]
+  tf.transform.translation.z = translation[2]
+  tf.transform.rotation.x = rotation[0]
+  tf.transform.rotation.y = rotation[1]
+  tf.transform.rotation.z = rotation[2]
+  tf.transform.rotation.w = rotation[3]
+  addROSTransformStamped(tf)
 
 def print_tree():
-  node = session.query(TreeNode).\
-                      filter(TreeNode.name == "rootnode").\
+  session = Session()
+  node = session.query(FrameNode).\
+                      filter(FrameNode.name == "world").\
                       first()
-
-                      #options(joinedload_all("children", "children",
-                       #                      "children", "children", "children")).\
 
   msg(node.dump())
 
-def test():
-  included_parts = session.query(
-                TreeNode.id,
-                TreeNode.name,
-                TreeNode.pose).\
-                    filter(TreeNode.name=="rootnode").\
-                    cte(name="included_parts", recursive=True)
+def print_nodes():
+  session = Session()
+  nodes = session.query(FrameNode).all()
+  for node in nodes:
+    print node
 
-  incl_alias = aliased(included_parts, name="pr")
-  parts_alias = aliased(TreeNode, name="p")
-  included_parts = included_parts.union_all(
-    session.query(
-        parts_alias.id,
-        parts_alias.name,
-        parts_alias.pose).\
-            filter(parts_alias.id==incl_alias.c.id)
-    )
-
-  q = session.query(
-        included_parts.c.id,
-        func.sum(included_parts.c.pose).
-            label('total_quantity')
-    ).\
-    group_by(included_parts.c.id).scalar()
-
-  print q
+def test_lookup_frame(source_frame, target_frame):
+  transform = lookup_transform(source_frame, target_frame)
+  print source_frame, '->', target_frame, ':', transform
 
 if __name__ == '__main__':
 
+  ## SETUP
+  #drop_all()
+  #create_all()
   #create_tree()
   #print_tree()
-  test()
+
+  ## INSERT
+  #test_ros_insert('world', 'floor0', [0,0,-1], [0,0,0,1])
+  #test_ros_insert('table0', 'cup0', [0,0,0], [0,0,0,1])
+
+  ## CHANGE REFERENCE
+  #change_source("table0", "mug0")
+  #change_source("table0", "mug1")
+
+  ## REMOVE FRAMES
+  #remove_frame('mug0')
+  #remove_frame('table1', True)
+  #remove_frame('room1', True, 'room0')
+
+  ## LOOKUP FRAMES
+  #test_lookup_frame("world", "mug1")
+  #test_lookup_frame("floor1", "table0")
+
+  ## GET ROS TRANSFORM
+  #print rosGetTransform("world", "mug1")
+  #print rosGetFrame("mug1")
+
+  ## LOOKUP ROOTS
+  #create_root_node('root')
+  #print "all roots:", get_root_nodes()
+
+  #print_nodes()
+
   msg('done')
-
-
-
-
-
-
-
-
-
