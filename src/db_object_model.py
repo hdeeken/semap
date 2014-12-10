@@ -29,11 +29,8 @@ from spatial_db.msg import ObjectInstance as ROSObjectInstance
 from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
-
 from db_pose_model import *
 from db_geometry_model import *
-#from db_geometry_model import GeometryModel
-#from db_pose_model import *
 
 ### OBJECT TABLES
 
@@ -94,25 +91,18 @@ class ObjectDescription(Base):
       if model.geometry_type == 'POINT2D':
         ros.point2d_models.append(model.toROSPoint2DModel())
       elif model.geometry_type == 'POSE2D':
-        #print 'pose2d'
         ros.pose2d_models.append(model.toROSPose2DModel())
       elif model.geometry_type == 'POLYGON2D':
-        #print 'polygon2d'
         ros.polygon2d_models.append(model.toROSPolygon2DModel())
       elif model.geometry_type == 'POINT3D':
-        #print 'point3d'
         ros.point3d_models.append(model.toROSPoint3DModel())
       elif model.geometry_type == 'POSE3D':
-        #print 'pose3d'
         ros.pose3d_models.append(model.toROSPose3DModel())
       elif model.geometry_type == 'POLYGON3D':
-        #print 'polygon3d'
         ros.polygon3d_models.append(model.toROSPolygon3DModel())
       elif model.geometry_type == 'TRIANGLEMESH3D':
-        #print 'tin3d'
         ros.trianglemesh3d_models.append(model.toROSTriangleMesh3DModel())
       elif model.geometry_type == 'POLYGONMESH3D':
-        #print 'polygonmesh3d'
         ros.polygonmesh3d_models.append(model.toROSPolygonMesh3DModel())
       else:
         print 'ERROR: found unknown geometry type:', model.geometry_type
@@ -129,10 +119,8 @@ class ObjectInstance(Base):
   __tablename__ = 'object_instance'
   id = Column('id', Integer, primary_key=True)
   alias = Column('alias', String, nullable=True)
-  # pose of the object
   pose_id = Column('pose_id', Integer, ForeignKey('global_pose.id'), nullable=True)
   pose = relationship("GlobalPose", backref=backref('object_instance', uselist=False))
-  # object description
   object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=True)
   object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=False))
 
