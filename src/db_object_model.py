@@ -136,6 +136,7 @@ class ObjectInstance(Base):
 
   def toROS(self):
     ros = ROSObjectInstance()
+    ros.id = self.id
     ros.alias = str(self.alias)
     ros.pose = self.pose.toROS()
     ros.description = self.object_description.toROS()
