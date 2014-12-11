@@ -12,7 +12,7 @@ from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, Composit
 from geoalchemy2.functions import ST_Distance, ST_AsText
 from postgis_functions import *
 
-from db_environment import Session
+from db_environment import db()
 from db_model import *
 
 from geometry_msgs.msg import Point as ROSPoint
@@ -31,21 +31,19 @@ from spatial_db_msgs.msg import ObjectInstanceOverview as ROSObjectInstanceOverv
 
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix
 
-session = Session()
-
 #int32 num_objects #total number of object instances in db
 #string[] object_types #currently instanciated object types
 #int32[] objects_per_type # and thier counts
 #ObjectInstances instances_without_geometry # names, aliases and poses
 
 #def test_object_instance_overview():
-#  for inst, desc, geo2d in session.query(ObjectInstance, ObjectDescription, GeometryModel).\
+#  for inst, desc, geo2d in db().query(ObjectInstance, ObjectDescription, GeometryModel).\
 #    filter(ObjectInstance.object_description_id == ObjectDescription.id).\
 #    filter(ObjectDescription.id == GeometryModel.object_description_id):
 #    print inst.alias
 #    print desc.type
 #    print geo2d.type
-  #for inst_types in session.query(ObjectDescription.types).filter()):
+  #for inst_types in db().query(ObjectDescription.types).filter()):
   #  print num_objects
     #for type in types:
     #  print type
@@ -178,7 +176,7 @@ def test_object_instance_insertion():
   # create instance from ROS
   inst_db0 = ObjectInstance()
   inst_db0.fromROS(inst_ros)
-  session.add(inst_db0)
+  db().add(inst_db0)
 
   # create instance from existing model via id
   inst_db1 = ObjectInstance()
@@ -190,11 +188,11 @@ def test_object_instance_insertion():
   pose.pose.position.z = "0.0"
   inst_db1.pose.pose = fromROSPose(pose.pose)
   inst_db1.pose.ref_system = 'origin'
-  #session.add(inst_db1)
-  session.commit()
+  #db().add(inst_db1)
+  db().commit()
 
 def test_get_object_instances():
-  for inst in session.query(ObjectInstance):
+  for inst in db().query(ObjectInstance):
       desc = inst.object_description
       print 'ObjectInstance #',inst.id, 'has alias', inst.alias
       print 'Pose: ', inst.pose
@@ -203,13 +201,13 @@ def test_get_object_instances():
       for model in desc.geometry_models:
           print '    Model #', model.id, model.type, model.geometry_type
           print '           ', model.pose.pose
-          print '           ', session.execute(ST_AsText(model.geometry)).scalar()
+          print '           ', db().execute(ST_AsText(model.geometry)).scalar()
           print
-          print '           ', session.execute(ST_AsText(model.pose.apply(model.geometry))).scalar()
+          print '           ', db().execute(ST_AsText(model.pose.apply(model.geometry))).scalar()
 
 def test_get_object_extraction():
 
-  for db in session.query(ObjectInstance):
+  for db in db().query(ObjectInstance):
     instance = db.toROS()
     desc = instance.description
     print 'ObjectInstance #',instance.id, 'has alias', instance.alias
@@ -294,20 +292,20 @@ def test_point_model_functions():
   #desc_ros.polygon2d_models.append(polygon2dmodel)
   #desc_ros.polygon3d_models.append(polygon3dmodel)
 
-  for i in session.query(ObjectDescription).filter(ObjectDescription.id==4):
+  for i in db().query(ObjectDescription).filter(ObjectDescription.id==4):
       print i.type
       new = GeometryModel()
       new.fromROSPolygon3DModel(polygon3dmodel)
       i.geometry_models3d.append(new)
-      session.commit()
+      db().commit()
       print 'did it'
 
   desc_db = ObjectDescription()
   desc_db.fromROS(desc_ros)
 
-  #session.add(desc_db)
+  #db().add(desc_db)
 
-  for desc in session.query(ObjectDescription):
+  for desc in db().query(ObjectDescription):
       print 'ObjectDescription #',desc.id, 'has type', desc.type
       print 'and', len(desc.geometry_models2d), '2d models'
       for model in desc.geometry_models2d:
@@ -316,7 +314,7 @@ def test_point_model_functions():
       for model in desc.geometry_models3d:
           print '    3DModel #', model.id, model.type, model.geometry_type, model.object_description_id, model.object_description.type
 
-  session.commit()
+  db().commit()
 
 def test_pose_model_functions():
   pose2d = ROSPose2D()
@@ -376,9 +374,9 @@ def test_polygon_model_functions():
   geo3dmodel = GeometryModel()
   geo3dmodel.fromROSPolygon3DModel(polygon3dmodel)
 
-  #session.add(geo2dmodel)
-  #session.add(geo3dmodel)
-  session.commit()
+  #db().add(geo2dmodel)
+  #db().add(geo3dmodel)
+  db().commit()
 
 def test_mesh_model_functions():
 
@@ -409,14 +407,14 @@ def test_mesh_model_functions():
   geo3dmodel = GeometryModel()
   geo3dmodel.fromTriangleMesh3DModel(mesh3dmodel)
 
-  session.add(geo3dmodel)
-  session.commit()
+  db().add(geo3dmodel)
+  db().commit()
 
 def test_object_query():
     o1 = aliased(ObjectInstance)
     o2 = aliased(ObjectInstance)
     for  object1, object2 in \
-      session.query(o1, o2).\
+      db().query(o1, o2).\
       filter(o1.alias=='5').\
       filter(o2.alias=='6'):
        print 'Object 1'
@@ -438,13 +436,13 @@ def test_object_query():
        print '3D Geo Type::',object2.object_description.geometry_model3d.geometry_type
        print '3D Geo:', object1.object_description.geometry_model3d.geometry
 
-       for r in session.execute(ST_AsText(ST_3DIntersection(object1.object_description.geometry_model3d.geometry, object2.object_description.geometry_model3d.geometry))):
+       for r in db().execute(ST_AsText(ST_3DIntersection(object1.object_description.geometry_model3d.geometry, object2.object_description.geometry_model3d.geometry))):
            print r
-       for r in session.execute(ST_AsText(ST_Affine(object1.object_description.geometry_model3d.geometry,  cos(pi()), -sin(pi()), 0,  sin(pi()), cos(pi()), 0,  0, 0, 1,  0, 0, 0))):
+       for r in db().execute(ST_AsText(ST_Affine(object1.object_description.geometry_model3d.geometry,  cos(pi()), -sin(pi()), 0,  sin(pi()), cos(pi()), 0,  0, 0, 1,  0, 0, 0))):
            print r
-       for r in session.execute(func.ST_Distance(object1.object_description.geometry_model2d.geometry, object2.object_description.geometry_model2d.geometry)):
+       for r in db().execute(func.ST_Distance(object1.object_description.geometry_model2d.geometry, object2.object_description.geometry_model2d.geometry)):
         print r
-       for r in session.execute(func.ST_3DDistance(object1.object_description.geometry_model3d.geometry, object2.object_description.geometry_model3d.geometry)):
+       for r in db().execute(func.ST_3DDistance(object1.object_description.geometry_model3d.geometry, object2.object_description.geometry_model3d.geometry)):
         print r
 
 #sqlstring = select([regionTable], func.ST_DWithin(regionTable.c.geo_loc, 'POINT(-74.78886216922375 40.32829276931833)', 1609*50 ))
@@ -477,8 +475,8 @@ def create_a_dummy_object_instance():
     obj_inst.pose = pose
     obj_inst.object_description = obj_desc
 
-    session.add(obj_inst)
-    session.commit()
+    db().add(obj_inst)
+    db().commit()
 
 if __name__ == "__main__":
   #test_point_model_functions()

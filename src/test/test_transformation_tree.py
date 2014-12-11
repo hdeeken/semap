@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-from db_environment import Base
-from db_environment import Session
+from db_environment import Base, db
 from db_model import create_all, drop_all
 
 from db_transformation_tree_model import *
@@ -49,16 +48,14 @@ def test_ros_insert(source_frame, target_frame, translation, rotation):
   addROSTransformStamped(tf)
 
 def print_tree():
-  session = Session()
-  node = session.query(FrameNode).\
+  node = db().query(FrameNode).\
                       filter(FrameNode.name == "world").\
                       first()
 
   msg(node.dump())
 
 def print_nodes():
-  session = Session()
-  nodes = session.query(FrameNode).all()
+  nodes = db().query(FrameNode).all()
   for node in nodes:
     print node
 
@@ -69,10 +66,10 @@ def test_lookup_frame(source_frame, target_frame):
 if __name__ == '__main__':
 
   ## SETUP
-  #drop_all()
-  #create_all()
-  #create_tree()
-  #print_tree()
+  drop_all()
+  create_all()
+  create_tree()
+  print_tree()
 
   ## INSERT
   #test_ros_insert('world', 'floor0', [0,0,-1], [0,0,0,1])
