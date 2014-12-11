@@ -10,8 +10,8 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-from db_environment import Base
-from db_environment import Session
+from db_environment import Base, db
+
 from geometry_msgs.msg import Point as ROSPoint
 from geometry_msgs.msg import Point32 as ROSPoint32
 from geometry_msgs.msg import Pose2D as ROSPose2D
@@ -52,33 +52,7 @@ class LocalPose(Base):
 
   def apply(self, geometry):
     matrix = toMatrix( self.pose)
-    session = Session()
-    transformed_geometry = session.execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
-                                               matrix[1][0], matrix[1][1], matrix[1][2], \
-                                               matrix[2][0], matrix[2][1], matrix[2][2], \
-                                               matrix[0][3], matrix[1][3], matrix[2][3])).scalar()
-    return transformed_geometry
-
-class GlobalPose(Base):
-  __tablename__ = 'global_pose'
-  id = Column('id', Integer, primary_key=True)
-  ref_system = Column('ref_system', String)
-  pose = Column('pose', String)
-
-  def toROS(self):
-    ros = ROSPoseStamped()
-    ros.header.frame_id = str(self.ref_system)
-    ros.pose = toROSPose(self.pose)
-    return ros
-
-  def fromROS(self, ros):
-    self.ref_system = ros.header.frame_id
-    self.pose = fromROSPose(ros.pose)
-
-  def apply(self, geometry):
-    matrix = self.pose.toMatrix()
-    session = Session()
-    transformed_geometry = session.execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+    transformed_geometry = db().execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
                                                matrix[1][0], matrix[1][1], matrix[1][2], \
                                                matrix[2][0], matrix[2][1], matrix[2][2], \
                                                matrix[0][3], matrix[1][3], matrix[2][3])).scalar()

@@ -10,10 +10,11 @@ from db_object_model import *
 from db_pose_model import *
 from db_transformation_tree_model import *
 
-session = Session()
-
 def truncate_all():
-  for table in reversed(Base.metadata.sorted_tables): session.execute(table.delete()); session.commit()
+  for table in reversed(Base.metadata.sorted_tables):
+    db().execute(table.delete())
+
+  db().commit()
 
 def drop_all():
   Base.metadata.drop_all(engine)

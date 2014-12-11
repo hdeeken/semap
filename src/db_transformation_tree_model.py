@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('spatial_db')
 
-from db_environment import Base
-from db_environment import Session
+from db_environment import Base, db
 
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.exc import IntegrityError
@@ -12,51 +11,52 @@ from sqlalchemy.orm import relationship, backref, joinedload_all
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped
 
 from numpy import radians, dot
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, \
                                euler_from_matrix, euler_matrix, inverse_matrix, identity_matrix
 
-session = Session()
+
 
 def create_root_node(frame):
   try:
     # create frame
     root = FrameNode(frame, fromTransformToString([[0,0,0], [0,0,0,1]]))
-    session.add(root)
-    session.commit()
+    db().add(root)
+    db().commit()
     return True
   except IntegrityError, e:
-    session.rollback()
+    db().rollback()
     print 'adding frame:', frame, 'failed'
     print 'this root frame already exists'
     print 'error:' , e
     return False
 
 def get_root_nodes():
-  roots = session.query(FrameNode.name).filter(FrameNode.parent==None).all()
+  roots = db().query(FrameNode.name).filter(FrameNode.parent==None).all()
   return roots
 
 def add_transform(source_frame, target_frame, transform):
 
   try:
-    source_node = session.query(FrameNode).filter_by(name = source_frame).one()
+    source_node = db().query(FrameNode).filter_by(name = source_frame).one()
   except NoResultFound, e:
     print 'add_transform failed to find source frame:', source_frame
     print 'error:', e
     return False
 
   try:
-    target_node = session.query(FrameNode).filter_by(name = target_frame).one()
+    target_node = db().query(FrameNode).filter_by(name = target_frame).one()
   except NoResultFound, e:
     try:
       # create frame
       target_node = FrameNode(target_frame, transform, source_node)
-      session.add(target_node)
-      session.commit()
+      db().add(target_node)
+      db().commit()
       return True
     except IntegrityError, e:
+      db().rollback()
       print 'adding frame:', target_frame, 'failed'
       print 'the frame already exists'
       print 'error:' , e
@@ -65,7 +65,7 @@ def add_transform(source_frame, target_frame, transform):
       # update frame's transform
     if target_node.parent.name == source_frame:
       target_node.transform = transform
-      session.commit()
+      db().commit()
     else:
     # update frame's source and transform
       print 'WARN update with different source frame'
@@ -74,19 +74,19 @@ def add_transform(source_frame, target_frame, transform):
       target_node.parent = source_node
       target_node.transform = transform
       print 'new tansform', target_node.transform
-      session.commit()
+      db().commit()
 
 def change_source(source_frame, target_frame):
 
   try:
-    source_node = session.query(FrameNode).filter_by(name = source_frame).one()
+    source_node = db().query(FrameNode).filter_by(name = source_frame).one()
   except NoResultFound, e:
     print 'change_source failed for source:', source_frame
     print 'error:', e
     return False
 
   try:
-    target_node = session.query(FrameNode).filter_by(name = target_frame).one()
+    target_node = db().query(FrameNode).filter_by(name = target_frame).one()
   except NoResultFound, e:
     print 'change_source failed to find target frame:', target_frame
     print 'error:' , e
@@ -98,11 +98,11 @@ def change_source(source_frame, target_frame):
     new_transform = lookup_transform(source_frame, target_frame)
     target_node.parent = source_node
     target_node.transform = fromTransformToString(new_transform)
-    session.commit()
+    db().commit()
 
 def remove_frame(target_frame, keep_children = False, source_frame = None):
   try:
-    target_node = session.query(FrameNode).filter_by(name=target_frame).one()
+    target_node = db().query(FrameNode).filter_by(name=target_frame).one()
 
     if keep_children:
       print target_node.children
@@ -116,8 +116,8 @@ def remove_frame(target_frame, keep_children = False, source_frame = None):
           print 'rebase', child, 'to default:', target_node.parent.name
           change_source(target_node.parent.name, children[child].name)
 
-    session.delete(target_node)
-    session.commit()
+    db().delete(target_node)
+    db().commit()
     return True
   except NoResultFound, e:
     print 'removing frame:', target_frame, 'failed'
@@ -127,14 +127,14 @@ def remove_frame(target_frame, keep_children = False, source_frame = None):
 
 def lookup_transform(source_frame, target_frame):
   try:
-    source_node = session.query(FrameNode).filter_by(name = source_frame).one()
+    source_node = db().query(FrameNode).filter_by(name = source_frame).one()
   except NoResultFound, e:
     print 'lookup_transform failed for source:', source_frame
     print 'error:', e
     return None
 
   try:
-    target_node = session.query(FrameNode).filter_by(name = target_frame).one()
+    target_node = db().query(FrameNode).filter_by(name = target_frame).one()
   except NoResultFound, e:
     print 'lookup_transform failed for target:', target_frame
     print 'error:', e
@@ -171,7 +171,7 @@ def rosGetTransform(source_frame, target_frame):
 
 def rosGetFrame(target_frame):
   try:
-    target_node = session.query(FrameNode).filter_by(name = target_frame).one()
+    target_node = db().query(FrameNode).filter_by(name = target_frame).one()
     transform = fromStringToTransform(target_node.transform)
     ros = TransformStamped()
     ros.header.frame_id = target_node.parent.name
@@ -365,7 +365,7 @@ class FrameNode(Base):
     def fromROSPoseStamped(self, pose, name):
 
       try:
-        parent = session.query(FrameNode).filter_by(name = pose.header.frame_id).one()
+        parent = db().query(FrameNode).filter_by(name = pose.header.frame_id).one()
         translation = [pose.pose.position.x, \
                      pose.pose.position.y, \
                      pose.pose.position.z]
@@ -387,7 +387,7 @@ class FrameNode(Base):
       transform = fromStringToTransform(self.transform)
       ros = PoseStamped()
       ros.header.frame_id = self.parent.name
-      ros.pose.position.translation.x = transform[0][0]
+      ros.pose.position.x = transform[0][0]
       ros.pose.position.y = transform[0][1]
       ros.pose.position.z = transform[0][2]
       ros.pose.orientation.x = transform[1][0]
@@ -411,9 +411,8 @@ class FrameNode(Base):
       return ros
 
     def apply(self, geometry):
-      matrix = self.pose.toMatrix()
-      session = Session()
-      transformed_geometry = session.execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+      matrix = self.transform.fromStringToMatrix()
+      transformed_geometry = db().execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
                                                  matrix[1][0], matrix[1][1], matrix[1][2], \
                                                  matrix[2][0], matrix[2][1], matrix[2][2], \
                                                  matrix[0][3], matrix[1][3], matrix[2][3])).scalar()

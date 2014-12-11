@@ -62,8 +62,7 @@ class GeometryModel(Base):
   def toROSPoint2DModel(self):
     ros = Point2DModel()
     ros.type = str(self.type)
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     point = [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
     ros.geometry.x = point[0]
     ros.geometry.y = point[1]
@@ -106,8 +105,7 @@ class GeometryModel(Base):
     ros = Polygon2DModel()
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
     for point in polygon[0:len(polygon)-1]:
       values = [float(x) for x in point.split(' ')]
@@ -127,8 +125,7 @@ class GeometryModel(Base):
   def toROSPoint3DModel(self):
     ros = Point3DModel()
     ros.type = str(self.type)
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     point =  [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
     ros.geometry.x = point[0]
     ros.geometry.y = point[1]
@@ -147,7 +144,6 @@ class GeometryModel(Base):
     ros = Pose3DModel()
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    session = Session()
     return ros
 
   def fromROSPolygon3DModel(self, model):
@@ -166,8 +162,7 @@ class GeometryModel(Base):
     ros = Polygon3DModel()
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
     for point in polygon[0:len(polygon)-1]:
       values =  [float(x) for x in point.split(' ')]
@@ -198,8 +193,7 @@ class GeometryModel(Base):
     ros = TriangleMesh3DModel()
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     triangles = as_text.split(')),')
     vertices = []
     for triangle in triangles:
@@ -245,8 +239,7 @@ class GeometryModel(Base):
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     ros.pose = self.pose.toROS()
-    session = Session()
-    as_text = session.execute(ST_AsText(self.geometry)).scalar()
+    as_text = db().execute(ST_AsText(self.geometry)).scalar()
     polygons = as_text.split(')),')
     for polygon in polygons:
       ros_polygon = ROSPolygon()

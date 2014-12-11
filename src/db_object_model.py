@@ -11,8 +11,7 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-from db_environment import Base
-from db_environment import Session
+from db_environment import Base, db
 from geometry_msgs.msg import Point as ROSPoint
 from geometry_msgs.msg import Point32 as ROSPoint32
 from geometry_msgs.msg import Pose2D as ROSPose2D

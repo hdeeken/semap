@@ -10,3 +10,8 @@ Base = declarative_base()
 engine = create_engine('postgresql://hdeeken:mYdB@localhost/sfcgal_test', echo=False)
 #global session class
 Session = sessionmaker(bind=engine) 
+
+session = Session()
+
+def db():
+  return session
