@@ -46,6 +46,7 @@ class ObjectDescription(Base):
   __tablename__ = 'object_description'
   id = Column('id', Integer, primary_key=True)
   type = Column('type', String)
+  object_instances = relationship("ObjectInstance", backref="object_description")
 
   def fromROS(self, ros):
     self.type = ros.type
@@ -126,11 +127,9 @@ class ObjectInstance(Base):
 
   def fromROS(self, ros):
     self.alias = ros.alias
-    description = ObjectDescription()
-    description.fromROS(ros.description)
-    self.object_description = description
+    self.object_description_id = ros.description.id
     frame = FrameNode('','')
-    frame.fromROSPoseStamped(ros.pose, self.object_description.type + str(self.id))
+    frame.fromROSPoseStamped(ros.pose, self.alias)
     self.frame = frame
     return
 

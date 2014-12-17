@@ -37,7 +37,7 @@ def get_root_nodes():
   roots = db().query(FrameNode.name).filter(FrameNode.parent==None).all()
   return roots
 
-def add_transform(source_frame, target_frame, transform):
+def add_transform(source_frame, target_frame, transform, append_transform = True):
 
   try:
     source_node = db().query(FrameNode).filter_by(name = source_frame).one()
@@ -64,6 +64,9 @@ def add_transform(source_frame, target_frame, transform):
   else:
       # update frame's transform
     if target_node.parent.name == source_frame:
+      if append_transform:
+        transform = fromMatrixToString(fromStringToMatrix(transform).dot(fromStringToMatrix(target_node.transform)))
+
       target_node.transform = transform
       db().commit()
     else:
@@ -76,7 +79,7 @@ def add_transform(source_frame, target_frame, transform):
       print 'new tansform', target_node.transform
       db().commit()
 
-def change_source(source_frame, target_frame):
+def change_source(source_frame, target_frame, keep_transform = False):
 
   try:
     source_node = db().query(FrameNode).filter_by(name = source_frame).one()
@@ -95,9 +98,11 @@ def change_source(source_frame, target_frame):
     #print 'change source for', target_frame, 'from', target_node.parent.name, 'to', source_frame
     #print 'lookup tf from', source_frame, 'to', target_frame
 
-    new_transform = lookup_transform(source_frame, target_frame)
     target_node.parent = source_node
-    target_node.transform = fromTransformToString(new_transform)
+
+    if not keep_transform:
+      target_node.transform = fromTransformToString(lookup_transform(source_frame, target_frame))
+
     db().commit()
 
 def remove_frame(target_frame, keep_children = False, source_frame = None):
@@ -191,7 +196,7 @@ def rosGetFrame(target_frame):
 
 ## ROS IO
 
-def addROSTransformStamped(ros):
+def addROSTransformStamped(ros, append_transform = True):
   translation = [ros.transform.translation.x, \
                  ros.transform.translation.y, \
                  ros.transform.translation.z]
@@ -201,7 +206,7 @@ def addROSTransformStamped(ros):
                  ros.transform.rotation.w]
 
   transform = fromTransformToString([translation, rotation])
-  add_transform(ros.header.frame_id, ros.child_frame_id, transform)
+  add_transform(ros.header.frame_id, ros.child_frame_id, transform, append_transform)
 
 #def toROSTransformStamped():
   #ros = ROSTransformStamped()
@@ -362,6 +367,33 @@ class FrameNode(Base):
 
   ## FUNCTIONS
 
+    def changeFrame(self, frame, keep_transform):
+      try:
+        source_node = db().query(FrameNode).filter_by(name = frame).one()
+      except NoResultFound, e:
+        print 'change_source failed for source:', frame
+        print 'error:', e
+        return False
+
+      if not keep_transform:
+        print "dont keep transform"
+        target_trans = self.root_transform
+        print 'root tf', target_trans
+        target_matrix = fromTransformToMatrix(target_trans)
+
+        source_trans = source_node.root_transform
+        print 'source tf', target_trans
+        source_matrix = fromTransformToMatrix(source_trans)
+        trans_matrix = target_matrix.dot(inverse_matrix(source_matrix))
+        result = fromMatrixToTransform(trans_matrix)
+        print 'result tf', result
+        self.transform = fromTransformToString(result)
+      else:
+        print "keep transform"
+
+      self.parent = source_node
+      print "new parent", self.parent.name
+
     def fromROSPoseStamped(self, pose, name):
 
       try:
@@ -382,6 +414,36 @@ class FrameNode(Base):
         print 'add_transform failed to find source frame:', pose.header.frame_id
         print 'error:', e
       return None
+
+    def appendROSPose(self, pose):
+
+        translation = [pose.position.x, \
+                     pose.position.y, \
+                     pose.position.z]
+        rotation = [pose.orientation.x, \
+                     pose.orientation.y, \
+                     pose.orientation.z, \
+                     pose.orientation.w]
+
+        update = fromTransformToMatrix([translation, rotation])
+        old = fromTransformToMatrix(fromStringToTransform(self.transform))
+        print
+
+        new = old.dot(update)
+
+        self.transform = fromMatrixToString(new)
+
+    def setROSPose(self, pose):
+
+        translation = [pose.position.x, \
+                     pose.position.y, \
+                     pose.position.z]
+        rotation = [pose.orientation.x, \
+                     pose.orientation.y, \
+                     pose.orientation.z, \
+                     pose.orientation.w]
+
+        self.transform = fromTransformToString([translation, rotation])
 
     def toROSPoseStamped(self):
       transform = fromStringToTransform(self.transform)
