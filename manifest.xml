@@ -20,5 +20,3 @@
   <rosdep name="geoalchemy2" />
  
 </package>
-
-

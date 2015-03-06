@@ -11,13 +11,21 @@ from sqlalchemy.orm import relationship, backref, joinedload_all
 from sqlalchemy.orm.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+from geoalchemy2.types import Geometry
+from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, CompositeElement
+from geoalchemy2.functions import ST_Distance, ST_AsText
+from geoalchemy2.compat import buffer, bytes
+from postgis_functions import *
+
+from sqlalchemy import event
+from sqlalchemy.event import listen
+from sqlalchemy.schema import UniqueConstraint
+
 from geometry_msgs.msg import TransformStamped, PoseStamped
 
 from numpy import radians, dot
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, \
                                euler_from_matrix, euler_matrix, inverse_matrix, identity_matrix
-
-
 
 def create_root_node(frame):
   try:
@@ -50,7 +58,6 @@ def add_transform(source_frame, target_frame, transform, append_transform = True
     target_node = db().query(FrameNode).filter_by(name = target_frame).one()
   except NoResultFound, e:
     try:
-      # create frame
       target_node = FrameNode(target_frame, transform, source_node)
       db().add(target_node)
       db().commit()
@@ -62,7 +69,7 @@ def add_transform(source_frame, target_frame, transform, append_transform = True
       print 'error:' , e
       return False
   else:
-      # update frame's transform
+    # update frame's transform
     if target_node.parent.name == source_frame:
       if append_transform:
         transform = fromMatrixToString(fromStringToMatrix(transform).dot(fromStringToMatrix(target_node.transform)))
@@ -70,13 +77,9 @@ def add_transform(source_frame, target_frame, transform, append_transform = True
       target_node.transform = transform
       db().commit()
     else:
-    # update frame's source and transform
-      print 'WARN update with different source frame'
-      print 'old source frame:', target_node.parent.name
-      print 'new source frame:', source_frame
+      #update frame's source and transform
       target_node.parent = source_node
       target_node.transform = transform
-      print 'new tansform', target_node.transform
       db().commit()
 
 def change_source(source_frame, target_frame, keep_transform = False):
@@ -95,8 +98,6 @@ def change_source(source_frame, target_frame, keep_transform = False):
     print 'error:' , e
     return False
   else:
-    #print 'change source for', target_frame, 'from', target_node.parent.name, 'to', source_frame
-    #print 'lookup tf from', source_frame, 'to', target_frame
 
     target_node.parent = source_node
 
@@ -131,6 +132,7 @@ def remove_frame(target_frame, keep_children = False, source_frame = None):
     return False
 
 def lookup_transform(source_frame, target_frame):
+  print 'external lookup_transform'
   try:
     source_node = db().query(FrameNode).filter_by(name = source_frame).one()
   except NoResultFound, e:
@@ -146,19 +148,16 @@ def lookup_transform(source_frame, target_frame):
     return None
 
   target_trans = target_node.root_transform
-  #print 'root trans', target_node.name , target_node.root_transform
   target_matrix = fromTransformToMatrix(target_trans)
-
   source_trans = source_node.root_transform
-  #print 'root trans', source_node.name , source_node.root_transform
   source_matrix = fromTransformToMatrix(source_trans)
-  trans_matrix = target_matrix.dot(inverse_matrix(source_matrix ))
 
-  #print 'root matrix', target_node.name, target_matrix
-  #print 'root matrix', source_node.name, source_matrix
-  #print 'trans_matrix', trans_matrix
-  #print 'diff trans', fromMatrixToTransform(trans_matrix)
-  return fromMatrixToTransform(trans_matrix)
+  trans_matrix = inverse_matrix(source_matrix).dot(target_matrix)
+  result =  fromMatrixToTransform(trans_matrix)
+  print 'target', target_trans
+  print 'source', source_trans
+  print 'result', result
+  return result
 
 def rosGetTransform(source_frame, target_frame):
   transform = lookup_transform(source_frame, target_frame)
@@ -274,6 +273,11 @@ def fromMatrixToTransform(matrix):
   return translation, rotation
 
 ## DB TF TREE
+def append(transform, increment):
+  update = fromTransformToMatrix(increment)
+  old = fromTransformToMatrix(fromStringToTransform(transform))
+  new = old.dot(update)
+  return fromMatrixToString(new)
 
 class FrameNode(Base):
     __tablename__ = 'tree'
@@ -324,16 +328,11 @@ class FrameNode(Base):
                         for c in self.children.values()]
                     )
 
-    '''
-    #@hybrid_property
-    #def grandparent(self):
-      #if self.parent != None:
-        #return self.parent.parent
+    #def __after_commit_insert__(self):
+    #  print 'FRAME - AFTER COMMIT - INSERT'
 
-    #@grandparent.comparator
-    #def grandparent(cls):
-        #return GrandparentTransformer(cls)
-    '''
+    #def __after_commit_update__(self):
+    #  print 'FRAME - AFTER COMMIT - UPDATE'
 
     @hybrid_property
     def parents(self):
@@ -359,7 +358,7 @@ class FrameNode(Base):
       multi_matrix = identity_matrix()
       for node in self.path_to_root:
         matrix = fromStringToMatrix(node.transform)
-        multi_matrix = dot(multi_matrix, matrix)
+        multi_matrix = dot(matrix, multi_matrix)
         #print node.name, matrix
       root_transform = fromMatrixToTransform(multi_matrix)
      # print 'root:', root_transform
@@ -368,6 +367,10 @@ class FrameNode(Base):
   ## FUNCTIONS
 
     def changeFrame(self, frame, keep_transform):
+      #print "CHANGE FRAME"
+      #print 'from', self.name
+      #print 'to', frame
+
       try:
         source_node = db().query(FrameNode).filter_by(name = frame).one()
       except NoResultFound, e:
@@ -376,26 +379,42 @@ class FrameNode(Base):
         return False
 
       if not keep_transform:
-        print "dont keep transform"
-        target_trans = self.root_transform
-        print 'root tf', target_trans
-        target_matrix = fromTransformToMatrix(target_trans)
-
-        source_trans = source_node.root_transform
-        print 'source tf', target_trans
-        source_matrix = fromTransformToMatrix(source_trans)
-        trans_matrix = target_matrix.dot(inverse_matrix(source_matrix))
-        result = fromMatrixToTransform(trans_matrix)
-        print 'result tf', result
-        self.transform = fromTransformToString(result)
-      else:
-        print "keep transform"
+        #print "dont keep transform"
+        transform = self.lookup_transform(frame)
+        self.transform = fromTransformToString(transform)
+      #else:
+      #  print "keep transform"
 
       self.parent = source_node
-      print "new parent", self.parent.name
+      #print "new parent", self.parent.name
+
+    def lookup_transform(self, frame):
+      #print
+      #print "Lookup Transform"
+      #print 'from', self.name
+      #print 'to', frame
+
+      try:
+        source_node = db().query(FrameNode).filter_by(name = frame).one()
+      except NoResultFound, e:
+        print 'change_source failed for source:', frame
+        print 'error:', e
+        return None
+
+      target_trans = self.root_transform
+      target_matrix = fromTransformToMatrix(target_trans)
+      #print 'from', self.name, 'to root is', target_trans
+
+      source_trans = source_node.root_transform
+      #print 'from', source_node.name, 'to root is', source_trans
+
+      source_matrix = fromTransformToMatrix(source_trans)
+      trans_matrix = inverse_matrix(source_matrix).dot(target_matrix)
+      result = fromMatrixToTransform(trans_matrix)
+      #print 'result', result
+      return result
 
     def fromROSPoseStamped(self, pose, name):
-
       try:
         parent = db().query(FrameNode).filter_by(name = pose.header.frame_id).one()
         translation = [pose.pose.position.x, \
@@ -416,7 +435,6 @@ class FrameNode(Base):
       return None
 
     def appendROSPose(self, pose):
-
         translation = [pose.position.x, \
                      pose.position.y, \
                      pose.position.z]
@@ -427,11 +445,10 @@ class FrameNode(Base):
 
         update = fromTransformToMatrix([translation, rotation])
         old = fromTransformToMatrix(fromStringToTransform(self.transform))
-        print
-
         new = old.dot(update)
 
         self.transform = fromMatrixToString(new)
+        db().flush()
 
     def setROSPose(self, pose):
 
@@ -444,6 +461,7 @@ class FrameNode(Base):
                      pose.orientation.w]
 
         self.transform = fromTransformToString([translation, rotation])
+        db().flush()
 
     def toROSPoseStamped(self):
       transform = fromStringToTransform(self.transform)
@@ -473,7 +491,7 @@ class FrameNode(Base):
       return ros
 
     def apply(self, geometry):
-      matrix = self.transform.fromStringToMatrix()
+      matrix = fromStringToMatrix(self.transform)
       transformed_geometry = db().execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
                                                  matrix[1][0], matrix[1][1], matrix[1][2], \
                                                  matrix[2][0], matrix[2][1], matrix[2][2], \

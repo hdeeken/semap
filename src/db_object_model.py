@@ -3,6 +3,10 @@ import roslib; roslib.load_manifest('spatial_db')
 
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
+from sqlalchemy import event
+from sqlalchemy.event import listen
+from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.orm import column_property
 
 from geoalchemy2.types import Geometry
 from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, CompositeElement
@@ -11,7 +15,7 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-from db_environment import Base, db
+from db_environment import *
 from geometry_msgs.msg import Point as ROSPoint
 from geometry_msgs.msg import Point32 as ROSPoint32
 from geometry_msgs.msg import Pose2D as ROSPose2D
@@ -46,7 +50,12 @@ class ObjectDescription(Base):
   __tablename__ = 'object_description'
   id = Column('id', Integer, primary_key=True)
   type = Column('type', String)
-  object_instances = relationship("ObjectInstance", backref="object_description")
+
+  def getInstancesIDs(self):
+    ids = []
+    for inst in self.object_instance:
+      ids.append(inst.id)
+    return ids
 
   def fromROS(self, ros):
     self.type = ros.type
@@ -84,6 +93,54 @@ class ObjectDescription(Base):
         self.geometry_models.append(new)
     return
 
+  def addPoint2DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPoint2DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPose2DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPose2DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPolygon2DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPolygon2DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPoint3DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPoint3DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPose3DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPose3DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPolygon3DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPolygon3DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addTriangleMesh3DModel(self, model):
+    new = GeometryModel()
+    new.fromROSTriangleMesh3DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
+  def addPolygonMesh3DModel(self, model):
+    new = GeometryModel()
+    new.fromROSPolygonMesh3DModel(model)
+    self.geometry_models.append(new)
+    db().commit()
+
   def toROS(self):
     ros = ROSObjectDescription()
     ros.id = self.id
@@ -119,24 +176,88 @@ class ObjectDescription(Base):
 class ObjectInstance(Base):
   __tablename__ = 'object_instance'
   id = Column('id', Integer, primary_key=True)
+  name = Column('name', String, nullable=False, unique=True)
   alias = Column('alias', String, nullable=True)
   frame_id = Column('frame_id', Integer, ForeignKey('tree.id'), nullable=True)
   frame = relationship("FrameNode", backref=backref('object_instance', uselist=False))
   object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=True)
-  object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=False))
+  object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=True))
 
+  def __init__(self, ros):
+
+    if ros.alias != None:
+      self.alias = ros.alias
+    else:
+      print 'instance without alias was created'
+
+    if ros.description.id != None:
+      self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
+      self.name = self.object_description.type.lower()
+    else:
+      print 'instance without desc was created'
+      self.name = 'unknown'
+
+    if ros.pose != None:
+      frame = FrameNode('','')
+      frame.fromROSPoseStamped(ros.pose, self.name)
+      self.frame = frame
+    else:
+      print 'instance without frame was created'
+
+    self.name+= str(self.id)
+    self.name.lower()
+    self.frame.name = self.name
+    return
+
+  def getChildIDs(self):
+    ids = []
+    for key in self.frame.children.keys():
+       child = self.frame.children[key]
+       ids.append(child.object_instance.id)
+    return ids
+
+  '''
+    #def __before_commit_delete__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - DELETE'
+
+    #def __before_commit_insert__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - INSERT'
+
+    #def __before_commit_update__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - UPDATE'
+
+    #def __after_commit_insert__(self):
+    #  print 'INSTANCE - AFTER COMMIT - INSERT'
+
+    #def __after_commit_update__(self):
+    #  print 'INSTANCE - AFTER COMMIT - UPDATE'
+  '''
+
+  #DEPRECATED
   def fromROS(self, ros):
+    self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
+    print self.object_description
+    print self.object_description.name
     self.alias = ros.alias
-    self.object_description_id = ros.description.id
     frame = FrameNode('','')
-    frame.fromROSPoseStamped(ros.pose, self.alias)
+    frame.fromROSPoseStamped(ros.pose, self.name)
     self.frame = frame
     return
 
   def toROS(self):
     ros = ROSObjectInstance()
     ros.id = self.id
-    ros.alias = str(self.alias)
-    ros.pose = self.frame.toROSPoseStamped()
-    ros.description = self.object_description.toROS()
+    ros.name = str(self.name)
+    if self.alias:
+      ros.alias = str(self.alias)
+    else:
+      ros.alias = ""
+    if self.frame:
+      ros.pose = self.frame.toROSPoseStamped()
+    else:
+      ros.pose = ROSPoseStamped()
+    if self.object_description:
+      ros.description = self.object_description.toROS()
+    else:
+      ros.description = ROSObjectDescription()
     return ros

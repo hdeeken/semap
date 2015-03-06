@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('spatial_db')
 
+import rospy
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
@@ -51,6 +52,9 @@ class GeometryModel(Base):
 
   # 2D Geometry
 
+  def transformed(self):
+    return self.pose.apply(self.geometry)
+
   def fromROSPoint2DModel(self, model):
     self.type = model.type
     self.pose = LocalPose()
@@ -61,12 +65,19 @@ class GeometryModel(Base):
 
   def toROSPoint2DModel(self):
     ros = Point2DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     as_text = db().execute(ST_AsText(self.geometry)).scalar()
+    print 'as text', as_text
+    as_text_transformed = db().execute(ST_AsText(self.pose.apply(self.geometry))).scalar()
+    print self.pose.toROS()
+    print 'as transformed', as_text_transformed
     point = [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
-    ros.geometry.x = point[0]
-    ros.geometry.y = point[1]
-    ros.geometry.z = point[2]
+    pose = self.pose.toROS()
+    ros.geometry.x = point[0] + pose.position.x
+    ros.geometry.y = point[1] + pose.position.y
+    ros.geometry.z = point[2] + pose.position.z
+    print 'as ros:', ros.geometry
     return ros
 
   def fromROSPose2DModel(self, model):
@@ -82,6 +93,7 @@ class GeometryModel(Base):
 
   def toROSPose2DModel(self):
     ros = Pose2DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     matrix = toMatrix(self.pose.pose)
     ros.pose.x = matrix[0][3]
@@ -103,6 +115,7 @@ class GeometryModel(Base):
 
   def toROSPolygon2DModel(self):
     ros = Polygon2DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     as_text = db().execute(ST_AsText(self.geometry)).scalar()
@@ -124,6 +137,7 @@ class GeometryModel(Base):
 
   def toROSPoint3DModel(self):
     ros = Point3DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     as_text = db().execute(ST_AsText(self.geometry)).scalar()
     point =  [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
@@ -142,6 +156,7 @@ class GeometryModel(Base):
 
   def toROSPose3DModel(self):
     ros = Pose3DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     return ros
@@ -160,6 +175,7 @@ class GeometryModel(Base):
 
   def toROSPolygon3DModel(self):
     ros = Polygon3DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     as_text = db().execute(ST_AsText(self.geometry)).scalar()
@@ -190,30 +206,80 @@ class GeometryModel(Base):
     self.geometry = WKTElement(prefix + infix + postfix)
 
   def toROSTriangleMesh3DModel(self):
+    #rospy.loginfo("SpatialDB: toROSTriangleMesh3DModel")
+    then = rospy.Time.now()
+
+    #rospy.loginfo("Prepare Took %f seconds" % (rospy.Time.now() - then).to_sec())
+    #then2 = rospy.Time.now()
+    #as_text = db().execute(ST_AsText(self.geometry)).scalar()
+    #triangles = as_text.split(')),')
+    #rospy.loginfo("Get AsText Took %f seconds" % (rospy.Time.now() - then2).to_sec())
+
+    #then21 = rospy.Time.now()
+    as_text_transformed = db().execute(ST_AsText(self.pose.apply(self.geometry))).scalar()
+    #rospy.loginfo("Get AsTextTranformed Took %f seconds" % (rospy.Time.now() - then21).to_sec())
+
+    #then3 = rospy.Time.now()
+    triangles = as_text_transformed.split(')),')
+    #rospy.loginfo("Get Split Took %f seconds" % (rospy.Time.now() - then3).to_sec())
+
+    #then4 = rospy.Time.now()
+    #ros2 = TriangleMesh3DModel()
+    #ros2.id = self.id
+    #ros2.type = str(self.type)
+    #ros2.pose = self.pose.toROS()
+    #vertices = []
+    #for triangle in triangles:
+      #index = []
+      #points = triangle.strip('TIN Z(((').strip('))').split(',')
+      #for point in points[0:len(points)-1]:
+        #point = [float(x) for x in point.split()]
+        #if point not in vertices:
+          #vertices.append(point)
+          #index.append(vertices.index(point))
+          #ros_point = ROSPoint()
+          #ros_point.x = point[0]
+          #ros_point.y = point[1]
+          #ros_point.z = point[2]
+          #ros2.geometry.vertices.append(ros_point)
+        #else:
+          #index.append(vertices.index(point))
+
+      #ros_index = ROSMeshTriangle()
+      #ros_index.vertex_indices = index
+      #ros2.geometry.triangles.append(ros_index)
+    #rospy.loginfo("Get Triangle REDUNDANCY FREE Took %f seconds" % (rospy.Time.now() - then4).to_sec())
+    #print '#t:', len(ros2.geometry.triangles)
+    #print '#v:', len(ros2.geometry.vertices)
+
+    then5 = rospy.Time.now()
     ros = TriangleMesh3DModel()
+    ros.id = self.id
     ros.type = str(self.type)
-    ros.pose = self.pose.toROS()
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    triangles = as_text.split(')),')
+    ros.pose = nullPose()#self.pose.toROS()
     vertices = []
     for triangle in triangles:
       index = []
       points = triangle.strip('TIN Z(((').strip('))').split(',')
       for point in points[0:len(points)-1]:
         point = [float(x) for x in point.split()]
-        if point not in vertices:
-          vertices.append(point)
-          index.append(vertices.index(point))
-          ros_point = ROSPoint()
-          ros_point.x = point[0]
-          ros_point.y = point[1]
-          ros_point.z = point[2]
-          ros.geometry.vertices.append(ros_point)
-        else:
-          index.append(vertices.index(point))
+        vertices.append(point)
+        index.append(len(vertices)-1)
+        ros_point = ROSPoint()
+        ros_point.x = point[0]
+        ros_point.y = point[1]
+        ros_point.z = point[2]
+        ros.geometry.vertices.append(ros_point)
+
       ros_index = ROSMeshTriangle()
       ros_index.vertex_indices = index
       ros.geometry.triangles.append(ros_index)
+
+    #rospy.loginfo("Get Triangle REDUNDANT Took %f seconds" % (rospy.Time.now() - then5).to_sec())
+
+    rospy.loginfo("%5.2fk Triangles" % (len(ros.geometry.triangles) / 1000))
+    rospy.loginfo("%5.2fk Vertices" % (len(ros.geometry.vertices) / 1000))
+    #rospy.loginfo("Total:     %f s" % (rospy.Time.now() - then).to_sec())
     return ros
 
   def fromROSPolygonMesh3DModel(self, model):
@@ -236,6 +302,7 @@ class GeometryModel(Base):
 
   def toROSPolygonMesh3DModel(self):
     ros = PolygonMesh3DModel()
+    ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     ros.pose = self.pose.toROS()
