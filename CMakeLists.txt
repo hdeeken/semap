@@ -1,30 +1,44 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(semap)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+# Package also depends on:
+#python-sqlalchemy
+#geoalchemy2
 
-rosbuild_init()
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  roslib
+  tf
+  geometry_msgs
+  shape_msgs
+  visualization_msgs
+  semap_msgs
+)
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+catkin_package(
+  INCLUDE_DIRS
+  LIBRARIES
+  CATKIN_DEPENDS
+  rospy
+  roslib
+  tf
+  geometry_msgs
+  shape_msgs
+  visualization_msgs
+  semap_msgs
+  DEPENDS
+  python-sqlalchemy
+  geoalchemy2
+)
 
-#uncomment if you have defined messages
-rosbuild_genmsg()
-#uncomment if you have defined services
-rosbuild_gensrv()
+catkin_python_setup()
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+catkin_install_python(PROGRAMS
+
+  src/test/test_imports.py
+  src/test/test_db_interaction.py
+  src/test/test_transformation_tree.py
+
+DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION})
+
+

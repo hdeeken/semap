@@ -1,0 +1,36 @@
+<package>
+  <name> semap </name>
+  <version>0.1.0</version>
+  <description>
+    The SEMAP framework.
+  </description>
+
+  <author email="hdeeken@uos.de">Henning Deeken</author>
+  <maintainer email="hdeeken@uos.de">Henning Deeken</maintainer>
+  <license>BSD</license>
+  <url>http://ros.org/wiki/spatial_db</url>
+
+  <build_depend>rospy</build_depend>
+  <build_depend>roslib</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>shape_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>semap_msgs</build_depend>
+
+  <build_depend>python-sqlalchemy</build_depend>
+  <build_depend>geoalchemy2</build_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>shape_msgs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>semap_msgs</run_depend>
+
+  <run_depend>python-sqlalchemy</run_depend>
+  <run_depend>geoalchemy2</run_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('semap')
 
-import rospy
-from db_environment import Base, db
+from sets import Set
+from numpy import radians
 
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
@@ -11,20 +11,13 @@ from geoalchemy2.types import Geometry
 from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, CompositeElement
 from geoalchemy2.functions import ST_Distance, ST_AsText
 from geoalchemy2.compat import buffer, bytes
-from postgis_functions import *
 
-from sets import Set
-from geometry_msgs.msg import Point
-from geometry_msgs.msg import Point32
-from geometry_msgs.msg import Pose2D
-from geometry_msgs.msg import Pose
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Polygon
-from mesh_msgs.msg import TriangleMesh, TriangleIndices
-from mesh_msgs.msg import PolygonMesh, PolygonIndices
-
-from numpy import radians
+from geometry_msgs.msg import Point, Point32, Pose2D, Pose, PoseStamped, Polygon
+from mesh_msgs.msg import TriangleMesh, TriangleIndices, PolygonMesh, PolygonIndices
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
+
+from semap.db_environment import Base, db
+from semap.postgis_functions import *
 
 def fromPoint2D(point):
   return WKTElement('POINT(%f %f %f)' % (point.x, point.y, 0.0))
