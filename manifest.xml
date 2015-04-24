@@ -12,7 +12,6 @@
   <depend package="roslib"/>
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
-  <depend package="shape_msgs"/>
   <depend package="visualization_msgs"/>
   <depend package="spatial_db_msgs"/>
 

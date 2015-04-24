@@ -12,15 +12,6 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-from geometry_msgs.msg import Point as ROSPoint
-from geometry_msgs.msg import Point32 as ROSPoint32
-from geometry_msgs.msg import Pose2D as ROSPose2D
-from geometry_msgs.msg import Pose as ROSPose
-from geometry_msgs.msg import PoseStamped as ROSPoseStamped
-from geometry_msgs.msg import Polygon as ROSPolygon
-from shape_msgs.msg import Mesh as ROSMesh
-from shape_msgs.msg import MeshTriangle as ROSMeshTriangle
-from spatial_db_msgs.msg import PolygonMesh as ROSPolygonMesh
 from spatial_db_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
 from spatial_db_msgs.msg import ObjectDescription as ROSObjectDescription
 from spatial_db_msgs.msg import ObjectInstance as ROSObjectInstance
@@ -29,7 +20,7 @@ from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
 from db_pose_model import *
-from ros_postgis_conversion import *
+from spatial_db.ros_postgis_conversion import *
 
 ### GEOMETRY TABLES
 
