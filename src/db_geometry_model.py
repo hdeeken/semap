@@ -29,6 +29,7 @@ from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
 from db_pose_model import *
+from ros_postgis_conversion import *
 
 ### GEOMETRY TABLES
 
@@ -60,24 +61,13 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.pose = fromROSPose(nullPose())
     self.geometry_type = 'POINT2D'
-    geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, 0.0)
-    self.geometry =  WKTElement(geometry_string)
+    self.geometry =  fromPoint2D(model.geometry)
 
   def toROSPoint2DModel(self):
     ros = Point2DModel()
     ros.id = self.id
     ros.type = str(self.type)
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    print 'as text', as_text
-    as_text_transformed = db().execute(ST_AsText(self.pose.apply(self.geometry))).scalar()
-    print self.pose.toROS()
-    print 'as transformed', as_text_transformed
-    point = [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
-    pose = self.pose.toROS()
-    ros.geometry.x = point[0] + pose.position.x
-    ros.geometry.y = point[1] + pose.position.y
-    ros.geometry.z = point[2] + pose.position.z
-    print 'as ros:', ros.geometry
+    ros.geometry = toPoint2D(self.geometry)
     return ros
 
   def fromROSPose2DModel(self, model):
@@ -106,23 +96,14 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.fromROS(model.pose)
     self.geometry_type = 'POLYGON2D'
-    prefix = 'POLYGON(('
-    infix=''
-    postfix = '%f %f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y, 0.0)
-    for point in model.geometry.points:
-      infix = infix + '%f %f %f,' % ( point.x, point.y, 0.0)
-    self.geometry = WKTElement(prefix + infix + postfix)
+    self.geometry = fromPolygon2D(model.geometry)
 
   def toROSPolygon2DModel(self):
     ros = Polygon2DModel()
     ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
-    for point in polygon[0:len(polygon)-1]:
-      values = [float(x) for x in point.split(' ')]
-      ros.geometry.points.append(ROSPoint32(values[0],values[1], 0.0))
+    ros.geometry = toPolygon2D(self.geometry)
     return ros
 
   # 3D Geometry
@@ -132,18 +113,13 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.fromROS(nullPose())
     self.geometry_type = 'POINT3D'
-    geometry_string = 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, model.geometry.z)
-    self.geometry =  WKTElement(geometry_string)
+    self.geometry =  fromPoint3D(model.geometry)
 
   def toROSPoint3DModel(self):
     ros = Point3DModel()
     ros.id = self.id
     ros.type = str(self.type)
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    point =  [float(x) for x in as_text.strip('POINT Z(').strip(')').split(' ')]
-    ros.geometry.x = point[0]
-    ros.geometry.y = point[1]
-    ros.geometry.z = point[2]
+    ros.geometry = toPoint3D(self.geometry)
     return ros
 
   def fromROSPose3DModel(self, model):
@@ -151,8 +127,7 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.fromROS(model.pose)
     self.geometry_type = 'POSE3D'
-    geometry_string = 'POINT(%f %f %f)' % (model.pose.position.x, model.pose.position.y, model.pose.position.z)
-    self.geometry =  WKTElement(geometry_string)
+    self.geometry = fromPoint3D(model.pose.position)
 
   def toROSPose3DModel(self):
     ros = Pose3DModel()
@@ -166,23 +141,14 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.fromROS(model.pose)
     self.geometry_type = 'POLYGON3D'
-    prefix = 'POLYGON(('
-    infix=''
-    postfix = '%f %f %f))' % ( model.geometry.points[0].x, model.geometry.points[0].y, model.geometry.points[0].z)
-    for point in model.geometry.points:
-      infix = infix + '%f %f %f,' % ( point.x, point.y, point.z)
-    self.geometry = WKTElement(prefix + infix + postfix)
+    self.geometry = fromPolygon3D(model.geometry)
 
   def toROSPolygon3DModel(self):
     ros = Polygon3DModel()
     ros.id = self.id
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    polygon = as_text.strip('POLYGON Z((').strip('))').split(',')
-    for point in polygon[0:len(polygon)-1]:
-      values =  [float(x) for x in point.split(' ')]
-      ros.geometry.points.append(ROSPoint32(values[0],values[1],values[2]))
+    ros.geometry = toPolygon3D(self.geometry)
     return ros
 
   def fromROSTriangleMesh3DModel(self, model):
@@ -190,96 +156,14 @@ class GeometryModel(Base):
     self.geometry_type = 'TRIANGLEMESH3D'
     self.pose = LocalPose()
     self.pose.fromROS(model.pose)
-    prefix = 'TIN('
-    postfix = ')'
-    triangles = model.geometry.triangles
-    vertices = model.geometry.vertices
-    triangle_strings = []
-    for triangle in triangles:
-      indices = triangle.vertex_indices
-      triangle_strings.append('((%f %f %f, %f %f %f, %f %f %f, %f %f %f))' \
-              % (vertices[indices[0]].x, vertices[indices[0]].y, vertices[indices[0]].z, \
-                 vertices[indices[1]].x, vertices[indices[1]].y, vertices[indices[1]].z, \
-                 vertices[indices[2]].x, vertices[indices[2]].y, vertices[indices[2]].z, \
-                 vertices[indices[0]].x, vertices[indices[0]].y, vertices[indices[0]].z))
-    infix = ",".join(triangle_strings)
-    self.geometry = WKTElement(prefix + infix + postfix)
+    self.geometry = fromTriangleMesh3D(model.geometry)
 
   def toROSTriangleMesh3DModel(self):
-    #rospy.loginfo("SpatialDB: toROSTriangleMesh3DModel")
-    then = rospy.Time.now()
-
-    #rospy.loginfo("Prepare Took %f seconds" % (rospy.Time.now() - then).to_sec())
-    #then2 = rospy.Time.now()
-    #as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    #triangles = as_text.split(')),')
-    #rospy.loginfo("Get AsText Took %f seconds" % (rospy.Time.now() - then2).to_sec())
-
-    #then21 = rospy.Time.now()
-    as_text_transformed = db().execute(ST_AsText(self.pose.apply(self.geometry))).scalar()
-    #rospy.loginfo("Get AsTextTranformed Took %f seconds" % (rospy.Time.now() - then21).to_sec())
-
-    #then3 = rospy.Time.now()
-    triangles = as_text_transformed.split(')),')
-    #rospy.loginfo("Get Split Took %f seconds" % (rospy.Time.now() - then3).to_sec())
-
-    #then4 = rospy.Time.now()
-    #ros2 = TriangleMesh3DModel()
-    #ros2.id = self.id
-    #ros2.type = str(self.type)
-    #ros2.pose = self.pose.toROS()
-    #vertices = []
-    #for triangle in triangles:
-      #index = []
-      #points = triangle.strip('TIN Z(((').strip('))').split(',')
-      #for point in points[0:len(points)-1]:
-        #point = [float(x) for x in point.split()]
-        #if point not in vertices:
-          #vertices.append(point)
-          #index.append(vertices.index(point))
-          #ros_point = ROSPoint()
-          #ros_point.x = point[0]
-          #ros_point.y = point[1]
-          #ros_point.z = point[2]
-          #ros2.geometry.vertices.append(ros_point)
-        #else:
-          #index.append(vertices.index(point))
-
-      #ros_index = ROSMeshTriangle()
-      #ros_index.vertex_indices = index
-      #ros2.geometry.triangles.append(ros_index)
-    #rospy.loginfo("Get Triangle REDUNDANCY FREE Took %f seconds" % (rospy.Time.now() - then4).to_sec())
-    #print '#t:', len(ros2.geometry.triangles)
-    #print '#v:', len(ros2.geometry.vertices)
-
-    then5 = rospy.Time.now()
     ros = TriangleMesh3DModel()
     ros.id = self.id
     ros.type = str(self.type)
-    ros.pose = nullPose()#self.pose.toROS()
-    vertices = []
-    for triangle in triangles:
-      index = []
-      points = triangle.strip('TIN Z(((').strip('))').split(',')
-      for point in points[0:len(points)-1]:
-        point = [float(x) for x in point.split()]
-        vertices.append(point)
-        index.append(len(vertices)-1)
-        ros_point = ROSPoint()
-        ros_point.x = point[0]
-        ros_point.y = point[1]
-        ros_point.z = point[2]
-        ros.geometry.vertices.append(ros_point)
-
-      ros_index = ROSMeshTriangle()
-      ros_index.vertex_indices = index
-      ros.geometry.triangles.append(ros_index)
-
-    #rospy.loginfo("Get Triangle REDUNDANT Took %f seconds" % (rospy.Time.now() - then5).to_sec())
-
-    rospy.loginfo("%5.2fk Triangles" % (len(ros.geometry.triangles) / 1000))
-    rospy.loginfo("%5.2fk Vertices" % (len(ros.geometry.vertices) / 1000))
-    #rospy.loginfo("Total:     %f s" % (rospy.Time.now() - then).to_sec())
+    ros.pose = self.pose.toROS()
+    ros.geometry = toTriangleMesh3D(self.geometry)
     return ros
 
   def fromROSPolygonMesh3DModel(self, model):
@@ -287,18 +171,7 @@ class GeometryModel(Base):
     self.pose = LocalPose()
     self.pose.fromROS(model.pose)
     self.geometry_type = 'POLYGONMESH3D'
-    prefix = 'POLYHEDRALSURFACE('
-    postfix = ')'
-    polygons = model.geometry.polygons
-    polygon_strings = []
-    for polygon in polygons:
-      polygon_string = ''
-      for point in polygon.points:
-        polygon_string = polygon_string + '%f %f %f,' % ( point.x, point.y, point.z)
-      polygon_string= '(('+ polygon_string + '%f %f %f))' % ( polygon.points[0].x, polygon.points[0].y, polygon.points[0].z)
-      polygon_strings.append(polygon_string)
-    infix = ",".join(polygon_strings)
-    self.geometry = WKTElement(prefix + infix + postfix)
+    self.geometry = fromPolygonMesh3D(model.geometry)
 
   def toROSPolygonMesh3DModel(self):
     ros = PolygonMesh3DModel()
@@ -306,17 +179,5 @@ class GeometryModel(Base):
     ros.type = str(self.type)
     ros.pose = self.pose.toROS()
     ros.pose = self.pose.toROS()
-    as_text = db().execute(ST_AsText(self.geometry)).scalar()
-    polygons = as_text.split(')),')
-    for polygon in polygons:
-      ros_polygon = ROSPolygon()
-      points = polygon.strip('POLYHEDRALSURFACE Z(((').strip('))').split(',')
-      for point in points[0:len(points)-1]:
-        point = [float(x) for x in point.split()]
-        ros_point = ROSPoint32()
-        ros_point.x = point[0]
-        ros_point.y = point[1]
-        ros_point.z = point[2]
-        ros_polygon.points.append(ros_point)
-      ros.geometry.polygons.append(ros_polygon)
+    ros.geometry = toPolygonMesh3D(self.geometry)
     return ros
