@@ -353,6 +353,13 @@ class FrameNode(Base):
       return path
 
     @hybrid_property
+    def root_frame(self):
+      p = self
+      while p != None:
+          p = p.parent
+      return p
+
+    @hybrid_property
     def root_transform(self):
       #print 'calculating root_transform for', self.name
       multi_matrix = identity_matrix()
