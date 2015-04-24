@@ -20,10 +20,6 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Polygon 
 from mesh_msgs.msg import TriangleMesh, TriangleIndices
 from mesh_msgs.msg import PolygonMesh, PolygonIndices
-from spatial_db_msgs.msg import PolygonMesh as ROSPolygonMesh
-from spatial_db_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
-from spatial_db_msgs.msg import ObjectDescription 
-from spatial_db_msgs.msg import ObjectInstance
 
 from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
@@ -61,7 +57,7 @@ def toPolygon2D(geometry, is_text = False):
 
 # 3D Geometry
 
-def fromPoint3D(geometry:
+def fromPoint3D(geometry):
   return WKTElement( 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, model.geometry.z) )
 
 def toPoint3D(geometry, is_text = False):
