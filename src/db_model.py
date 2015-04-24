@@ -12,7 +12,7 @@ from db_pose_model import *
 from db_transformation_tree_model import *
 
 def create_all():
-  Base.metadata.create_all(engine)
+  Base.metadata.create_all(engine())
 
 def truncate_all():
   for table in reversed(Base.metadata.sorted_tables):
@@ -20,4 +20,4 @@ def truncate_all():
   db().commit()
 
 def drop_all():
-  Base.metadata.drop_all(engine)
+  Base.metadata.drop_all(engine())

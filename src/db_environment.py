@@ -129,3 +129,7 @@ def initializeConnection(user, password, host, database, echo = False):
 def db():
     global session
     return session
+
+def engine():
+    global engine
+    return engine
