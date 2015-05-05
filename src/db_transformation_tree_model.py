@@ -30,6 +30,7 @@ from tf.transformations import quaternion_matrix, random_quaternion, quaternion_
 def create_root_node(frame):
   try:
     # create frame
+
     root = FrameNode(frame, fromTransformToString([[0,0,0], [0,0,0,1]]))
     db().add(root)
     db().commit()
@@ -116,10 +117,8 @@ def remove_frame(target_frame, keep_children = False, source_frame = None):
       for child in list(target_node.children):
         print child
         if source_frame != None:
-          print 'rebase', child, 'to specific:', source_frame
           change_source(source_frame, children[child].name)
         else:
-          print 'rebase', child, 'to default:', target_node.parent.name
           change_source(target_node.parent.name, children[child].name)
 
     db().delete(target_node)
@@ -154,9 +153,6 @@ def lookup_transform(source_frame, target_frame):
 
   trans_matrix = inverse_matrix(source_matrix).dot(target_matrix)
   result =  fromMatrixToTransform(trans_matrix)
-  print 'target', target_trans
-  print 'source', source_trans
-  print 'result', result
   return result
 
 def rosGetTransform(source_frame, target_frame):
@@ -361,23 +357,16 @@ class FrameNode(Base):
 
     @hybrid_property
     def root_transform(self):
-      #print 'calculating root_transform for', self.name
       multi_matrix = identity_matrix()
       for node in self.path_to_root:
         matrix = fromStringToMatrix(node.transform)
         multi_matrix = dot(matrix, multi_matrix)
-        #print node.name, matrix
       root_transform = fromMatrixToTransform(multi_matrix)
-     # print 'root:', root_transform
       return root_transform
 
   ## FUNCTIONS
 
     def changeFrame(self, frame, keep_transform):
-      #print "CHANGE FRAME"
-      #print 'from', self.name
-      #print 'to', frame
-
       try:
         source_node = db().query(FrameNode).filter_by(name = frame).one()
       except NoResultFound, e:
@@ -386,21 +375,12 @@ class FrameNode(Base):
         return False
 
       if not keep_transform:
-        #print "dont keep transform"
         transform = self.lookup_transform(frame)
         self.transform = fromTransformToString(transform)
-      #else:
-      #  print "keep transform"
 
       self.parent = source_node
-      #print "new parent", self.parent.name
 
     def lookup_transform(self, frame):
-      #print
-      #print "Lookup Transform"
-      #print 'from', self.name
-      #print 'to', frame
-
       try:
         source_node = db().query(FrameNode).filter_by(name = frame).one()
       except NoResultFound, e:
@@ -410,15 +390,10 @@ class FrameNode(Base):
 
       target_trans = self.root_transform
       target_matrix = fromTransformToMatrix(target_trans)
-      #print 'from', self.name, 'to root is', target_trans
-
       source_trans = source_node.root_transform
-      #print 'from', source_node.name, 'to root is', source_trans
-
       source_matrix = fromTransformToMatrix(source_trans)
       trans_matrix = inverse_matrix(source_matrix).dot(target_matrix)
       result = fromMatrixToTransform(trans_matrix)
-      #print 'result', result
       return result
 
     def fromROSPoseStamped(self, pose, name):
