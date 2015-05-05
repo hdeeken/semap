@@ -2,6 +2,8 @@
 import roslib; roslib.load_manifest('spatial_db')
 
 import rospy
+from db_environment import Base, db
+
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
 
@@ -115,12 +117,12 @@ def toTriangleMesh3D(geometry, is_text = False):
     points = triangle.strip('TIN Z(((').strip('))').split(',')
     for point in points[0:len(points)-1]:
       values = [float(x) for x in point.split()]
-      index.append(len(mesh.vertices)-1)
+      index.append(len(mesh.vertices))
       point = Point()
       point.x = values[0]
       point.y = values[1]
       point.z = values[2]
-      mesh.vertices.append(ros_point)
+      mesh.vertices.append(point)
 
     indices = TriangleIndices()
     indices.vertex_indices = index
@@ -154,7 +156,7 @@ def toPolygonMesh3D(geometry, is_text = False):
     points = polygon.strip('POLYHEDRALSURFACE Z(((').strip('))').split(',')
     for point in points[0:len(points)-1]:
       values = [float(x) for x in point.split()]
-      index.append(len(mesh.vertices)-1)
+      index.append(len(mesh.vertices))
       point = Point()
       point.x = values[0]
       point.y = values[1]

@@ -448,7 +448,7 @@ class FrameNode(Base):
     def toROSPoseStamped(self):
       transform = fromStringToTransform(self.transform)
       ros = PoseStamped()
-      ros.header.frame_id = self.parent.name
+      ros.header.frame_id = str(self.parent.name)
       ros.pose.position.x = transform[0][0]
       ros.pose.position.y = transform[0][1]
       ros.pose.position.z = transform[0][2]
@@ -461,8 +461,8 @@ class FrameNode(Base):
     def toROSTransformStamped(self):
       transform = fromStringToTransform(self.transform)
       ros = TransformStamped()
-      ros.header.frame_id = self.parent.name
-      ros.child_frame_id = self.name
+      ros.header.frame_id = str(self.parent.name)
+      ros.child_frame_id = str(self.name)
       ros.transform.translation.x = transform[0][0]
       ros.transform.translation.y = transform[0][1]
       ros.transform.translation.z = transform[0][2]
