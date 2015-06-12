@@ -14,12 +14,12 @@ from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
 from sets import Set
-from geometry_msgs.msg import Point 
-from geometry_msgs.msg import Point32 
-from geometry_msgs.msg import Pose2D 
-from geometry_msgs.msg import Pose 
-from geometry_msgs.msg import PoseStamped 
-from geometry_msgs.msg import Polygon 
+from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point32
+from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Polygon
 from mesh_msgs.msg import TriangleMesh, TriangleIndices
 from mesh_msgs.msg import PolygonMesh, PolygonIndices
 
@@ -157,14 +157,62 @@ def toPolygonMesh3D(geometry, is_text = False):
     for point in points[0:len(points)-1]:
       values = [float(x) for x in point.split()]
       index.append(len(mesh.vertices))
-      point = Point()
-      point.x = values[0]
-      point.y = values[1]
-      point.z = values[2]
+      ros_point = Point()
+      ros_point.x = values[0]
+      ros_point.y = values[1]
+      ros_point.z = values[2]
       mesh.vertices.append(ros_point)
 
     indices = PolygonIndices()
     indices.vertex_indices = index
     mesh.polygons.append(indices)
 
+  return mesh
+
+def box3Dvalues(box3d):
+  minX = db().execute( ST_XMin( box3d ) ).scalar()
+  maxX = db().execute( ST_XMax( box3d ) ).scalar()
+  minY = db().execute( ST_YMin( box3d ) ).scalar()
+  maxY = db().execute( ST_YMax( box3d ) ).scalar()
+  minZ = db().execute( ST_ZMin( box3d ) ).scalar()
+  maxZ = db().execute( ST_ZMax( box3d ) ).scalar()
+  return [minX, maxX, minY, maxY, minZ, maxZ]
+
+def box3DtoPolygonMesh(box3d):
+
+  values = box3Dvalues(box3d)
+
+
+  p0 = [ values[0], values[2], values[4] ]
+  p1 = [ values[0], values[3], values[4] ]
+  p2 = [ values[0], values[3], values[5] ]
+  p3 = [ values[0], values[2], values[5] ]
+
+  p4 = [ values[1], values[2], values[4] ]
+  p5 = [ values[1], values[3], values[4] ]
+  p6 = [ values[1], values[3], values[5] ]
+  p7 = [ values[1], values[2], values[5] ]
+
+  f0 = [p0, p1, p2, p3]
+  f1 = [p0, p4, p7, p3]
+  f2 = [p0, p4, p5, p1]
+  f3 = [p4, p5, p6, p7]
+  f4 = [p1, p5, p6, p2]
+  f5 = [p3, p7, p6, p2]
+
+  faces = [f0, f1, f2, f3, f4, f5]
+  mesh = PolygonMesh()
+
+  for face in faces:
+    index = []
+    for point in face:
+      index.append(len(mesh.vertices))
+      ros_point = Point()
+      ros_point.x = point[0]
+      ros_point.y = point[1]
+      ros_point.z = point[2]
+      mesh.vertices.append(ros_point)
+    indices = PolygonIndices()
+    indices.vertex_indices = index
+    mesh.polygons.append(indices)
   return mesh

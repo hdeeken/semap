@@ -164,7 +164,83 @@ class ObjectDescription(Base):
         ros.polygonmesh3d_models.append(model.toROSPolygonMesh3DModel())
       else:
         print 'ERROR: found unknown geometry type:', model.geometry_type
+
+      ros.polygon2d_models.append( self.toFootprintBoxModel() )
+      ros.polygonmesh3d_models.append( self.toBoundingBoxModel() )
+
+      ros.polygon2d_models.append( self.toFootprintHullModel() )
+      ros.polygonmesh3d_models.append( self.toBoundingHullModel() )
+
     return ros
+
+  def getBody(self, as_text = False):
+    for model in self.geometry_models:
+      if model.type == "Body":
+        return model.transformed()
+
+  def getGeometryCollection(self, as_text = False):
+    models = []
+    for model in self.geometry_models:
+      models.append( model.transformed() )
+
+    if not as_text:
+      return db().execute( ST_Collect(models) ).scalar()
+    else:
+      return db().execute( ST_AsText( ST_Collect(models) ) ).scalar()
+
+  def getBox2D(self):
+    return db().execute( ST_Extent( self.getGeometryCollection() ) ).scalar()
+
+  def getBoundingBox(self, as_text = False):
+    if not as_text:
+      return db().execute( ST_Envelope( self.getGeometryCollection() ) ).scalar()
+    else:
+      return db().execute( ST_AsText( ST_Envelope( self.getGeometryCollection() ) ) ).scalar()
+
+  def getConvexHull2D(self, as_text = False):
+    if not as_text:
+      return db().execute( SFCGAL_Convexhull( self.getGeometryCollection() ) ).scalar()
+    else:
+      return db().execute( ST_AsText( SFCGAL_Convexhull( self.getGeometryCollection(True) ) ) ).scalar()
+
+  def getConvexHull3D(self, as_text = False):
+    if not as_text:
+      return db().execute( SFCGAL_Convexhull3D( self.getGeometryCollection() ) ).scalar()
+    else:
+      return db().execute( ST_AsText( SFCGAL_Convexhull3D( self.getGeometryCollection(True) ) ) ).scalar()
+
+
+  def getBox3D(self):
+    return db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar()
+
+  def toBoundingBoxModel(self):
+    ros = PolygonMesh3DModel()
+    ros.type = "BoundingBox"
+    ros.geometry = box3DtoPolygonMesh( self.getBox3D() )
+    return ros
+
+  def toFootprintBoxModel(self):
+    ros = Polygon2DModel()
+    ros.type = "FootprintBox"
+    ros.geometry = toPolygon2D( self.getBoundingBox() )
+    return ros
+
+  def toBoundingHullModel(self):
+    ros = PolygonMesh3DModel()
+    ros.type = "BoundingHull"
+    ros.geometry = toPolygonMesh3D( self.getConvexHull3D() )
+    return ros
+
+  def toFootprintHullModel(self):
+    ros = Polygon2DModel()
+    ros.type = "FootprintHull"
+    ros.geometry = toPolygon2D( self.getConvexHull2D() )
+    return ros
+
+# geometry ST_Envelope(geometry g1);
+# Returns the float4 minimum bounding box for the supplied geometry, as a geometry.
+# The polygon is defined by the corner points of the bounding box ((MINX, MINY), (MINX, MAXY), (MAXX, MAXY), (MAXX, MINY), (MINX, MINY)). (PostGIS will add a ZMIN/ZMAX coordinate as well).
+#POLYGON((-0.052632 -0.052343,-0.052632 0.052343,0.080814 0.052343,0.080814 -0.052343,-0.052632 -0.052343))
 
 """ ObjectInstance
 # defines an instanciates object
