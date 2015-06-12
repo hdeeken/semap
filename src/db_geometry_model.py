@@ -44,8 +44,8 @@ class GeometryModel(Base):
 
   # 2D Geometry
 
-  def transformed(self):
-    return self.pose.apply(self.geometry)
+  def transformed(self, as_text = False):
+    return self.pose.apply(self.geometry, as_text)
 
   def fromROSPoint2DModel(self, model):
     self.type = model.type

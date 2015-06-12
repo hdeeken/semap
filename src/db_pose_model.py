@@ -55,13 +55,18 @@ class LocalPose(Base):
       self.pose = fromMatrixToString(new)
       db().flush()
 
-  def apply(self, geometry):
+  def apply(self, geometry, as_text = False):
     matrix = toMatrix(self.pose)
-    transformed_geometry = db().execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+    if not as_text:
+      return db().execute( ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
                                                matrix[1][0], matrix[1][1], matrix[1][2], \
                                                matrix[2][0], matrix[2][1], matrix[2][2], \
-                                               matrix[0][3], matrix[1][3], matrix[2][3])).scalar()
-    return transformed_geometry
+                                               matrix[0][3], matrix[1][3], matrix[2][3]) ).scalar()
+    else:
+      return db().execute( ST_AsText( ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+                                               matrix[1][0], matrix[1][1], matrix[1][2], \
+                                               matrix[2][0], matrix[2][1], matrix[2][2], \
+                                               matrix[0][3], matrix[1][3], matrix[2][3]) ) ).scalar()
 
 ### POSE FUNCTIONS
 
