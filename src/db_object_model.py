@@ -13,6 +13,7 @@ from geoalchemy2.elements import WKTElement, WKBElement, RasterElement, Composit
 from geoalchemy2.functions import ST_Distance, ST_AsText
 from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 from sets import Set
 from db_environment import *
@@ -145,6 +146,7 @@ class ObjectDescription(Base):
     ros = ROSObjectDescription()
     ros.id = self.id
     ros.type = str(self.type)
+
     for model in self.geometry_models:
       if model.geometry_type == 'POINT2D':
         ros.point2d_models.append(model.toROSPoint2DModel())
@@ -391,3 +393,51 @@ class ObjectInstance(Base):
     ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingHullModel() )
 
     return ros
+
+  '''
+    #def __before_commit_delete__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - DELETE'
+
+    #def __before_commit_insert__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - INSERT'
+
+    #def __before_commit_update__(self):
+    #  print 'INSTANCE - BEFORE COMMIT - UPDATE'
+
+    #def __after_commit_insert__(self):
+    #  print 'INSTANCE - AFTER COMMIT - INSERT'
+
+    #def __after_commit_update__(self):
+    #  print 'INSTANCE - AFTER COMMIT - UPDATE'
+  '''
+
+  #das laeuft
+  @hybrid_method
+  def tester(self):
+     print db().execute(WKTElement('POINT(0.0 0.0 0.0)' )).scalar()
+     return db().execute(WKTElement('POINT(0.0 0.0 0.0)' )).scalar()
+    #return ST_Distance( self.getABox2D(), WKTElement('POINT(1.0 0.0 0.0)') ) > 0
+
+  @hybrid_method
+  def gimme(self):
+    abc = [0, 1 , 3]
+    print self.frame, 'is da id'
+    frame = self.frame
+    print frame.id
+    return abc
+
+  @hybrid_method
+  def tester2(self):
+  #  matrix = fromStringToMatrix(self.frame.transform)
+
+    a = self.gimme()[0]
+    b = giveme()[1]
+    c= giveme()[2]
+    return  db().execute(WKTElement('POINT(%f %f %f)' % (a, b ,b))).scalar()
+    #return  db().execute(WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], 0.0)))
+
+def giveme():
+    abc = [0, 1 , 3]
+    return abc
+
+
