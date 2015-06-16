@@ -165,11 +165,16 @@ class ObjectDescription(Base):
       else:
         print 'ERROR: found unknown geometry type:', model.geometry_type
 
+      # boxes
       ros.polygon2d_models.append( self.toFootprintBoxModel() )
       ros.polygonmesh3d_models.append( self.toBoundingBoxModel() )
 
+      # convex hulls
       ros.polygon2d_models.append( self.toFootprintHullModel() )
       ros.polygonmesh3d_models.append( self.toBoundingHullModel() )
+
+      #experimental: concave hulls
+      #ros.polygon2d_models.append( self.toFootprintHull2Model() )
 
     return ros
 
@@ -188,14 +193,17 @@ class ObjectDescription(Base):
     else:
       return db().execute( ST_AsText( ST_Collect(models) ) ).scalar()
 
-  def getBox2D(self):
-    return db().execute( ST_Extent( self.getGeometryCollection() ) ).scalar()
-
-  def getBoundingBox(self, as_text = False):
-    if not as_text:
+  def getBox2D(self, as_geo = True):
+    if as_geo:
       return db().execute( ST_Envelope( self.getGeometryCollection() ) ).scalar()
     else:
-      return db().execute( ST_AsText( ST_Envelope( self.getGeometryCollection() ) ) ).scalar()
+      return db().execute( ST_Extent( self.getGeometryCollection() ) ).scalar()
+
+  def getBox3D(self, as_geo = True):
+    if as_geo:
+      return box3DtoPolygonMeshGeometry( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar() )
+    else:
+      return db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar()
 
   def getConvexHull2D(self, as_text = False):
     if not as_text:
@@ -209,20 +217,17 @@ class ObjectDescription(Base):
     else:
       return db().execute( ST_AsText( SFCGAL_Convexhull3D( self.getGeometryCollection(True) ) ) ).scalar()
 
-
-  def getBox3D(self):
-    return db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar()
+  # probably DOES NOT WORK WITH TIN debug further
+  def getConcaveHull2D(self, as_text = False):
+    if not as_text:
+      return db().execute( ST_ConcaveHull( self.getGeometryCollection() , 0.8) ).scalar()
+    else:
+      return db().execute( ST_AsText( ST_ConcaveHull( self.getGeometryCollection() , 0.8) ) ).scalar()
 
   def toBoundingBoxModel(self):
     ros = PolygonMesh3DModel()
     ros.type = "BoundingBox"
-    ros.geometry = box3DtoPolygonMesh( self.getBox3D() )
-    return ros
-
-  def toFootprintBoxModel(self):
-    ros = Polygon2DModel()
-    ros.type = "FootprintBox"
-    ros.geometry = toPolygon2D( self.getBoundingBox() )
+    ros.geometry = toPolygonMesh3D( self.getBox3D() )
     return ros
 
   def toBoundingHullModel(self):
@@ -231,10 +236,22 @@ class ObjectDescription(Base):
     ros.geometry = toPolygonMesh3D( self.getConvexHull3D() )
     return ros
 
+  def toFootprintBoxModel(self):
+    ros = Polygon2DModel()
+    ros.type = "FootprintBox"
+    ros.geometry = toPolygon2D( self.getBox2D() )
+    return ros
+
   def toFootprintHullModel(self):
     ros = Polygon2DModel()
     ros.type = "FootprintHull"
     ros.geometry = toPolygon2D( self.getConvexHull2D() )
+    return ros
+
+  def toFootprintHull2Model(self):
+    ros = Polygon2DModel()
+    ros.type = "FootprintHull2"
+    ros.geometry = toPolygon2D( self.getConcaveHull2D() )
     return ros
 
 # geometry ST_Envelope(geometry g1);
@@ -292,22 +309,52 @@ class ObjectInstance(Base):
        ids.append(child.object_instance.id)
     return ids
 
-  '''
-    #def __before_commit_delete__(self):
-    #  print 'INSTANCE - BEFORE COMMIT - DELETE'
+  def getAPosition2D(self):
+    matrix = fromStringToMatrix(self.frame.transform)
+    return WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], 0.0))
 
-    #def __before_commit_insert__(self):
-    #  print 'INSTANCE - BEFORE COMMIT - INSERT'
+  def getAPosition3D(self):
+    matrix = fromStringToMatrix(self.frame.transform)
+    return WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], matrix[2][3]))
 
-    #def __before_commit_update__(self):
-    #  print 'INSTANCE - BEFORE COMMIT - UPDATE'
+  def getABox2D(self):
+    return self.frame.apply( self.object_description.getBox2D(as_geo = True) )
 
-    #def __after_commit_insert__(self):
-    #  print 'INSTANCE - AFTER COMMIT - INSERT'
+  def getABox2D2(self):
+    return self.frame.apply2( self.object_description.getBox2D(as_geo = True) )
 
-    #def __after_commit_update__(self):
-    #  print 'INSTANCE - AFTER COMMIT - UPDATE'
-  '''
+  def getABox3D(self):
+     return self.frame.apply( self.object_description.getBox3D(as_geo = True) )
+
+  def getAConvexHull2D(self):
+    return self.frame.apply( self.object_description.getConvexHull2D() )
+
+  def getAConvexHull3D(self):
+    return self.frame.apply( self.object_description.getConvexHull3D() )
+
+  def toAbsoluteFootprintBoxModel(self):
+    ros = Polygon2DModel()
+    ros.type = "AbsoluteFootprintBox"
+    ros.geometry = toPolygon2D( self.getABox2D() )
+    return ros
+
+  def toAbsoluteFootprintHullModel(self):
+    ros = Polygon2DModel()
+    ros.type = "AbsoluteFootprintHull"
+    ros.geometry = toPolygon2D( self.getAConvexHull2D() )
+    return ros
+
+  def toAbsoluteBoundingBoxModel(self):
+    ros = PolygonMesh3DModel()
+    ros.type = "AbsoluteBoundingBox"
+    ros.geometry = toPolygonMesh3D( self.getABox3D() )
+    return ros
+
+  def toAbsoluteBoundingHullModel(self):
+    ros = PolygonMesh3DModel()
+    ros.type = "AbsoluteBoundingHull"
+    ros.geometry = toPolygonMesh3D( self.getAConvexHull3D() )
+    return ros
 
   #DEPRECATED
   def fromROS(self, ros):
@@ -336,4 +383,11 @@ class ObjectInstance(Base):
       ros.description = self.object_description.toROS()
     else:
       ros.description = ROSObjectDescription()
+
+    ros.description.polygon2d_models.append( self.toAbsoluteFootprintBoxModel() )
+    ros.description.polygon2d_models.append( self.toAbsoluteFootprintHullModel() )
+
+    ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingBoxModel() )
+    ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingHullModel() )
+
     return ros
