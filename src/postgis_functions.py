@@ -56,6 +56,10 @@ class ST_ZMin(GenericFunction):
     name = 'ST_ZMin'
     type = None
 
+class ST_ConcaveHull(GenericFunction):
+    name = 'ST_ConcaveHull'
+    type = None
+
 class ST_Extent(GenericFunction):
     name = 'ST_Extent'
     type = None
@@ -70,6 +74,62 @@ class ST_Envelope(GenericFunction):
 
 class ST_3DDistance(GenericFunction):
     name = 'ST_3DDistance'
+    type = None
+
+class ST_3DMaxDistance(GenericFunction):
+    name = 'ST_3DMaxDistance'
+    type = None
+
+class ST_3DShortestLine(GenericFunction):
+    name = 'ST_3DShortestLine'
+    type = None
+
+class ST_3DLongestLine(GenericFunction):
+    name = 'ST_3DLongestLine'
+    type = None
+
+class ST_3DDWithin(GenericFunction):
+    name = 'ST_3DDWithin'
+    type = None
+
+class ST_3DDFullyWithin(GenericFunction):
+    name = 'ST_3DDFullyWithin'
+    type = None
+
+class ST_Touches(GenericFunction):
+    name = 'ST_Touches'
+    type = None
+
+class ST_Within(GenericFunction):
+    name = 'ST_Within'
+    type = None
+
+class ST_Contains(GenericFunction):
+    name = 'ST_Contains'
+    type = None
+
+class ST_Intersects(GenericFunction):
+    name = 'ST_Intersects'
+    type = None
+
+class ST_Disjoint(GenericFunction):
+    name = 'ST_Disjoint'
+    type = None
+
+class ST_DWithin(GenericFunction):
+    name = 'ST_DWithin'
+    type = None
+
+class ST_DFullyWithin(GenericFunction):
+    name = 'ST_DFullyWithin'
+    type = None
+
+class ST_StraightSkeleton(GenericFunction):
+    name = 'ST_StraightSkeleton'
+    type = None
+
+class ST_Distance(GenericFunction):
+    name = 'ST_Distance'
     type = None
 
 class ST_3DArea(GenericFunction):
