@@ -94,86 +94,121 @@ class ObjectDescription(Base):
         self.geometry_models.append(new)
     return
 
+  def createAbstractions(self):
+    if self.geometry_models:
+      new = GeometryModel()
+      new.fromROSPolygon2DModel(self.toFootprintBoxModel())
+      self.geometry_models.append(new)
+      db().commit()
+
+      new2 = GeometryModel()
+      new2.fromROSPolygon2DModel(self.toFootprintHullModel())
+      self.geometry_models.append(new2)
+      db().commit()
+      #new = GeometryModel()
+      #new.fromROSPolygonMesh3DModel(self.toBoundingBoxModel())
+      #self.geometry_models.append(new)
+
+     # new = GeometryModel()
+     # new.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
+     # self.geometry_models.append(new)
+    #db().commit()
+
+  def deleteAbstractions(self):
+    print 'delete abstractions from', self.type
+    for model in self.geometry_models:
+      if model.type in ["FootprintBox", "FootprintHull", "BoundingBox", "BoundingHull"]:
+        print 'delete', model.type
+        db().delete(model.pose)
+        db().delete(model)
+    db().commit()
+
+  def updateAbstractions(self):
+    self.deleteAbstractions()
+    self.createAbstractions()
+
   def addPoint2DModel(self, model):
     new = GeometryModel()
     new.fromROSPoint2DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPose2DModel(self, model):
     new = GeometryModel()
     new.fromROSPose2DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPolygon2DModel(self, model):
     new = GeometryModel()
     new.fromROSPolygon2DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPoint3DModel(self, model):
     new = GeometryModel()
     new.fromROSPoint3DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPose3DModel(self, model):
     new = GeometryModel()
     new.fromROSPose3DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPolygon3DModel(self, model):
     new = GeometryModel()
     new.fromROSPolygon3DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addTriangleMesh3DModel(self, model):
     new = GeometryModel()
     new.fromROSTriangleMesh3DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def addPolygonMesh3DModel(self, model):
     new = GeometryModel()
     new.fromROSPolygonMesh3DModel(model)
     self.geometry_models.append(new)
     db().commit()
+    self.updateAbstractions()
 
   def toROS(self):
     ros = ROSObjectDescription()
     ros.id = self.id
     ros.type = str(self.type)
 
-    for model in self.geometry_models:
-      if model.geometry_type == 'POINT2D':
-        ros.point2d_models.append(model.toROSPoint2DModel())
-      elif model.geometry_type == 'POSE2D':
-        ros.pose2d_models.append(model.toROSPose2DModel())
-      elif model.geometry_type == 'POLYGON2D':
-        ros.polygon2d_models.append(model.toROSPolygon2DModel())
-      elif model.geometry_type == 'POINT3D':
-        ros.point3d_models.append(model.toROSPoint3DModel())
-      elif model.geometry_type == 'POSE3D':
-        ros.pose3d_models.append(model.toROSPose3DModel())
-      elif model.geometry_type == 'POLYGON3D':
-        ros.polygon3d_models.append(model.toROSPolygon3DModel())
-      elif model.geometry_type == 'TRIANGLEMESH3D':
-        ros.trianglemesh3d_models.append(model.toROSTriangleMesh3DModel())
-      elif model.geometry_type == 'POLYGONMESH3D':
-        ros.polygonmesh3d_models.append(model.toROSPolygonMesh3DModel())
-      else:
-        print 'ERROR: found unknown geometry type:', model.geometry_type
+    if self.geometry_models:
 
-      # boxes
-      ros.polygon2d_models.append( self.toFootprintBoxModel() )
-      ros.polygonmesh3d_models.append( self.toBoundingBoxModel() )
-
-      # convex hulls
-      ros.polygon2d_models.append( self.toFootprintHullModel() )
-      ros.polygonmesh3d_models.append( self.toBoundingHullModel() )
+      for model in self.geometry_models:
+        if model.geometry_type == 'POINT2D':
+          ros.point2d_models.append(model.toROSPoint2DModel())
+        elif model.geometry_type == 'POSE2D':
+          ros.pose2d_models.append(model.toROSPose2DModel())
+        elif model.geometry_type == 'POLYGON2D':
+          ros.polygon2d_models.append(model.toROSPolygon2DModel())
+        elif model.geometry_type == 'POINT3D':
+          ros.point3d_models.append(model.toROSPoint3DModel())
+        elif model.geometry_type == 'POSE3D':
+          ros.pose3d_models.append(model.toROSPose3DModel())
+        elif model.geometry_type == 'POLYGON3D':
+          ros.polygon3d_models.append(model.toROSPolygon3DModel())
+        elif model.geometry_type == 'TRIANGLEMESH3D':
+          ros.trianglemesh3d_models.append(model.toROSTriangleMesh3DModel())
+        elif model.geometry_type == 'POLYGONMESH3D':
+          ros.polygonmesh3d_models.append(model.toROSPolygonMesh3DModel())
+        else:
+          print 'ERROR: found unknown geometry type:', model.geometry_type
 
       #experimental: concave hulls
       #ros.polygon2d_models.append( self.toFootprintHull2Model() )
@@ -261,6 +296,12 @@ class ObjectDescription(Base):
 # The polygon is defined by the corner points of the bounding box ((MINX, MINY), (MINX, MAXY), (MAXX, MAXY), (MAXX, MINY), (MINX, MINY)). (PostGIS will add a ZMIN/ZMAX coordinate as well).
 #POLYGON((-0.052632 -0.052343,-0.052632 0.052343,0.080814 0.052343,0.080814 -0.052343,-0.052632 -0.052343))
 
+#class RelativeDescription(ObjectDescription, Base):
+    #__tablename__ = 'relative_description'
+
+#class AbsoluteDescription(ObjectDescription, Base):
+    #__tablename__ = 'absolute_description'
+
 """ ObjectInstance
 # defines an instanciates object
 # alias: gives the opportunity of well-identifiable names
@@ -275,8 +316,12 @@ class ObjectInstance(Base):
   alias = Column('alias', String, nullable=True)
   frame_id = Column('frame_id', Integer, ForeignKey('tree.id'), nullable=True)
   frame = relationship("FrameNode", backref=backref('object_instance', uselist=False))
-  object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=True)
-  object_description = relationship("ObjectDescription", backref=backref('object_instance', uselist=True))
+
+  object_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
+  object_description = relationship("ObjectDescription", foreign_keys=[object_description_id], backref=backref('object_instance',  uselist=True) )
+  
+  absolute_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
+  absolute_description = relationship("ObjectDescription", foreign_keys=[absolute_description_id], backref=backref('instance') )
 
   def __init__(self, ros):
 
@@ -287,7 +332,8 @@ class ObjectInstance(Base):
 
     if ros.description.id != None:
       self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
-      self.name = self.object_description.type.lower()
+      self.name = 'object'
+      
     else:
       print 'instance without desc was created'
       self.name = 'unknown'
@@ -299,9 +345,16 @@ class ObjectInstance(Base):
     else:
       print 'instance without frame was created'
 
+    db().flush()
     self.name+= str(self.id)
+    print 'add id', self.id
     self.name.lower()
     self.frame.name = self.name
+
+    if self.object_description and self.frame:
+      print 'create INITIAL absolute'
+      self.createAbsoluteDescription()
+
     return
 
   def getChildIDs(self):
@@ -323,7 +376,7 @@ class ObjectInstance(Base):
     return self.frame.apply( self.object_description.getBox2D(as_geo = True) )
 
   def getABox2D2(self):
-    return self.frame.apply2( self.object_description.getBox2D(as_geo = True) )
+    return self.frame.apply( self.object_description.getBox2D(as_geo = True) )
 
   def getABox3D(self):
      return self.frame.apply( self.object_description.getBox3D(as_geo = True) )
@@ -358,6 +411,33 @@ class ObjectInstance(Base):
     ros.geometry = toPolygonMesh3D( self.getAConvexHull3D() )
     return ros
 
+  def createAbsoluteDescription(self):
+    self.absolute_description = ObjectDescription()
+    self.absolute_description.type = "absolute_description_" + self.name
+    
+    for model in self.object_description.geometry_models:
+      new = GeometryModel()
+      new.type = model.type
+      new.pose = LocalPose()
+      new.pose.pose = fromROSPose(nullPose())
+      new.geometry_type = model.geometry_type
+      new.geometry = self.frame.apply( model.transformed() )
+
+      self.absolute_description.geometry_models.append(new)
+      db().add(new)
+
+    db().add(self.absolute_description)
+    db().commit()
+
+    return
+
+  def deleteAbsoluteDescription(self):
+    for model in self.absolute_description.geometry_models:
+        db().delete(model.pose)
+        db().delete(model)
+    db().delete(self.absolute_description)
+    db().commit()
+
   #DEPRECATED
   def fromROS(self, ros):
     self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
@@ -381,18 +461,24 @@ class ObjectInstance(Base):
       ros.pose = self.frame.toROSPoseStamped()
     else:
       ros.pose = ROSPoseStamped()
+
     if self.object_description:
       ros.description = self.object_description.toROS()
     else:
       ros.description = ROSObjectDescription()
 
-    ros.description.polygon2d_models.append( self.toAbsoluteFootprintBoxModel() )
-    ros.description.polygon2d_models.append( self.toAbsoluteFootprintHullModel() )
-
-    ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingBoxModel() )
-    ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingHullModel() )
+    if self.absolute_description:
+      ros.absolute = self.absolute_description.toROS()
+    else:
+      ros.absolute = ROSObjectDescription()
 
     return ros
+
+  #ros.description.polygon2d_models.append( self.toAbsoluteFootprintBoxModel() )
+  #ros.description.polygon2d_models.append( self.toAbsoluteFootprintHullModel() )
+
+  #ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingBoxModel() )
+  #ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingHullModel() )
 
   '''
     #def __before_commit_delete__(self):
@@ -439,5 +525,3 @@ class ObjectInstance(Base):
 def giveme():
     abc = [0, 1 , 3]
     return abc
-
-
