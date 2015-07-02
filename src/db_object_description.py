@@ -35,59 +35,46 @@ from db_transformation_tree_model import *
 
 class ObjectDescription(Base):
   __tablename__ = 'object_description'
-  id = Column( 'id', Integer, primary_key=True )
-  type = Column( 'type', String )
-  #geometry_id = Column(Integer, ForeignKey('geometry_model.id'))
-  geometries = relationship("GeometryModel")
-  abstractions = relationship("GeometryModel")
-  ## Constructors / Destructors
+  id = Column( 'id', Integer, primary_key = True )
+  type = Column( 'type', String, unique = True, nullable = False )
 
-class Parent(Base):
-    __tablename__ = 'parent'
-    id = Column(Integer, primary_key=True)
-    children = relationship("Child")
-
-class Child(Base):
-    __tablename__ = 'child'
-    id = Column(Integer, primary_key=True)
-
-
-
+  geometries = relationship("GeometryModel", foreign_keys='GeometryModel.geometry_desc', backref='geometry_of', cascade="save-update, merge, delete" )
+  abstractions = relationship("GeometryModel", foreign_keys='GeometryModel.abstraction_desc', backref='abstracted_from', cascade="save-update, merge, delete" )
 
   def fromROS(self, ros):
     self.type = ros.type
     for model in ros.point2d_models:
         model = GeometryModel()
         model.fromROSPoint2DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.pose2d_models:
         model = GeometryModel()
         model.fromROSPose2DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.polygon2d_models:
         model = GeometryModel()
         model.fromROSPolygon2DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.point3d_models:
         model = GeometryModel()
         model.fromROSPoint3DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.pose3d_models:
         model = GeometryModel()
         model.fromROSPose3DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.polygon3d_models:
         model = GeometryModel()
         model.fromROSPolygon3DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.trianglemesh3d_models:
         model = GeometryModel()
         model.fromROSTriangleMesh3DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
     for model in ros.polygonmesh3d_models:
         model = GeometryModel()
         model.fromROSPolygonMesh3DModel( model )
-        self.geometry_models.append( model )
+        self.geometries.append( model )
 
     self.updateAbstractions()
 
@@ -98,8 +85,12 @@ class Child(Base):
     ros.id = self.id
     ros.type = str( self.type )
 
-    if self.geometry_models:
-      for model in self.geometry_models:
+    if self.geometries:
+      models = self.geometries
+      if self.abstractions:
+        models += self.abstractions
+
+      for model in models:
         if model.geometry_type == 'POINT2D':
           ros.point2d_models.append( model.toROSPoint2DModel() )
         elif model.geometry_type == 'POSE2D':
@@ -126,91 +117,91 @@ class Child(Base):
   def addPoint2DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPoint2DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPose2DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPose2DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPolygon2DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPolygon2DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPoint3DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPoint3DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPose3DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPose3DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPolygon3DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPolygon3DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addTriangleMesh3DModel( self, ros ):
     model = GeometryModel()
     model.fromROSTriangleMesh3DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   def addPolygonMesh3DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPolygonMesh3DModel( ros )
-    self.geometry_models.append( model )
+    self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
 
   # Abstractions
 
   def createAbstractions( self ):
-    if self.geometry_models:
+    if self.geometries:
       model = GeometryModel()
       model.fromROSPolygon2DModel( self.toFootprintBoxModel() )
-      self.geometry_models.append( model )
-      db().flush()
+      self.abstractions.append( model )
+
       model = GeometryModel()
       model.fromROSPolygon2DModel( self.toFootprintHullModel() )
-      self.geometry_models.append( model )
-      db().flush()
+      self.abstractions.append( model )
+
       #model = GeometryModel()
       #model.fromROSPolygonMesh3DModel(self.toBoundingBoxModel())
       #self.geometry_models.append( model )
       #model = GeometryModel()
       #model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
       #self.geometry_models.append( model )
+    else:
+      print 'have no geometries'
+
     db().commit()
     return
 
   def deleteAbstractions( self ):
-    print 'delete abstractions of', self.type
-    for model in self.geometry_models:
-      if model.type in [ "FootprintBox", "FootprintHull", "BoundingBox", "BoundingHull" ]:
-        db().delete( model.pose )
-        db().delete( model )
+    for model in self.abstractions:
+      db().delete( model.pose )
+      db().delete( model )
     db().commit()
     return
 
   def updateAbstractions( self ):
-    print 'update abstractions of', self.type
     self.deleteAbstractions()
     self.createAbstractions()
 
@@ -222,18 +213,14 @@ class Child(Base):
       ids.append( inst.id )
     return ids
 
-  def getBody( self, as_text = False ):
-    for model in self.geometry_models:
-      if model.type == "Body":
-        return model.transformed()
-
   def getGeometryCollection( self, as_text = False ):
     models = []
-    for model in self.geometry_models:
-      if model.type not in [ "FootprintBox", "FootprintHull", "BoundingBox", "BoundingHull" ]:
+    if self.geometries:
+      for model in self.geometries:
         models.append( model.transformed() )
-      if not as_text:
-        return db().execute( ST_Collect( models ) ).scalar()
+
+    if not as_text:
+      return db().execute( ST_Collect( models ) ).scalar()
     else:
       return db().execute( ST_AsText( ST_Collect( models ) ) ).scalar()
 
@@ -285,9 +272,3 @@ class Child(Base):
     ros.type = "FootprintHull"
     ros.geometry = toPolygon2D( self.getConvexHull2D() )
     return ros
-
-#class RelativeDescription( ObjectDescription, Base ):
-    #__tablename__ = 'relative_description'
-
-#class AbsoluteDescription( ObjectDescription, Base ):
-    #__tablename__ = 'absolute_description'
