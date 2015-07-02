@@ -35,8 +35,23 @@ from db_transformation_tree_model import *
 
 class ObjectDescription(Base):
   __tablename__ = 'object_description'
-  id = Column('id', Integer, primary_key=True)
-  type = Column('type', String)
+  id = Column( 'id', Integer, primary_key=True )
+  type = Column( 'type', String )
+  #geometry_id = Column(Integer, ForeignKey('geometry_model.id'))
+  geometries = relationship("GeometryModel")
+  abstractions = relationship("GeometryModel")
+  ## Constructors / Destructors
+
+class Parent(Base):
+    __tablename__ = 'parent'
+    id = Column(Integer, primary_key=True)
+    children = relationship("Child")
+
+class Child(Base):
+    __tablename__ = 'child'
+    id = Column(Integer, primary_key=True)
+
+
 
 
   def fromROS(self, ros):

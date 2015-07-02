@@ -34,12 +34,14 @@ class GeometryModel(Base):
   __tablename__ = 'geometry_model'
   id = Column('id', Integer, primary_key=True)
   type = Column('type ', String)
-  object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=False)
-  object_description = relationship("ObjectDescription", backref=backref('geometry_models', order_by=type))
+  #object_description_id = Column('object_description_id', Integer, ForeignKey('object_description.id'), nullable=False)
+  #object_description = relationship("ObjectDescription", backref=backref('geometry_models', order_by=type))
   pose_id = Column('pose_id', Integer, ForeignKey('local_pose.id'), nullable=True)
-  pose = relationship("LocalPose", backref=backref('geometry_model', uselist=False))
+  pose = relationship("LocalPose", backref=backref('geometry_model', uselist=False), cascade="delete")
   geometry_type = Column('geometry_type ', String)
   geometry = Column('geometry', Geometry(geometry_type='GEOMETRYZ', dimension=3), nullable=False)
+
+  parent_id = Column(Integer, ForeignKey('object_description.id'))
 
   # 2D Geometry
 
