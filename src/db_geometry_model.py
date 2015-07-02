@@ -11,7 +11,6 @@ from geoalchemy2.functions import ST_Distance, ST_AsText
 from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
-from sets import Set
 from spatial_db_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
 from spatial_db_msgs.msg import ObjectDescription as ROSObjectDescription
 from spatial_db_msgs.msg import ObjectInstance as ROSObjectInstance
