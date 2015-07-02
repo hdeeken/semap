@@ -92,38 +92,49 @@ class ObjectDescription(Base):
         new = GeometryModel()
         new.fromROSPolygonMesh3DModel(model)
         self.geometry_models.append(new)
+
+    self.updateAbstractions()
+
     return
 
   def createAbstractions(self):
+    print 'create abstractions of', self.type
     if self.geometry_models:
       new = GeometryModel()
       new.fromROSPolygon2DModel(self.toFootprintBoxModel())
       self.geometry_models.append(new)
-      db().commit()
 
-      new2 = GeometryModel()
-      new2.fromROSPolygon2DModel(self.toFootprintHullModel())
-      self.geometry_models.append(new2)
-      db().commit()
+      print self.geometry_models
+      db().flush()
+
+      new = GeometryModel()
+      new.fromROSPolygon2DModel(self.toFootprintHullModel())
+      self.geometry_models.append(new)
+      db().flush()
+
       #new = GeometryModel()
       #new.fromROSPolygonMesh3DModel(self.toBoundingBoxModel())
       #self.geometry_models.append(new)
 
-     # new = GeometryModel()
-     # new.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
-     # self.geometry_models.append(new)
-    #db().commit()
+      #new = GeometryModel()
+      #new.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
+      #self.geometry_models.append(new)
+
+    db().commit()
+    return
 
   def deleteAbstractions(self):
-    print 'delete abstractions from', self.type
+    print 'delete abstractions of', self.type
     for model in self.geometry_models:
       if model.type in ["FootprintBox", "FootprintHull", "BoundingBox", "BoundingHull"]:
         print 'delete', model.type
         db().delete(model.pose)
         db().delete(model)
     db().commit()
+    return
 
   def updateAbstractions(self):
+    print 'update abstractions of', self.type
     self.deleteAbstractions()
     self.createAbstractions()
 
@@ -211,7 +222,7 @@ class ObjectDescription(Base):
           print 'ERROR: found unknown geometry type:', model.geometry_type
 
       #experimental: concave hulls
-      #ros.polygon2d_models.append( self.toFootprintHull2Model() )
+      #ros.polygon2d_models.append( self.toFootprintHullModel() )
 
     return ros
 
@@ -223,10 +234,10 @@ class ObjectDescription(Base):
   def getGeometryCollection(self, as_text = False):
     models = []
     for model in self.geometry_models:
-      models.append( model.transformed() )
-
-    if not as_text:
-      return db().execute( ST_Collect(models) ).scalar()
+      if model.type not in ["FootprintBox", "FootprintHull", "BoundingBox", "BoundingHull"]:
+        models.append( model.transformed() )
+      if not as_text:
+        return db().execute( ST_Collect(models) ).scalar()
     else:
       return db().execute( ST_AsText( ST_Collect(models) ) ).scalar()
 
@@ -276,7 +287,8 @@ class ObjectDescription(Base):
   def toFootprintBoxModel(self):
     ros = Polygon2DModel()
     ros.type = "FootprintBox"
-    ros.geometry = toPolygon2D( self.getBox2D() )
+    geo = self.getBox2D()
+    ros.geometry = toPolygon2D( geo )
     return ros
 
   def toFootprintHullModel(self):
@@ -319,7 +331,7 @@ class ObjectInstance(Base):
 
   object_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
   object_description = relationship("ObjectDescription", foreign_keys=[object_description_id], backref=backref('object_instance',  uselist=True) )
-  
+
   absolute_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
   absolute_description = relationship("ObjectDescription", foreign_keys=[absolute_description_id], backref=backref('instance') )
 
@@ -351,9 +363,9 @@ class ObjectInstance(Base):
     self.name.lower()
     self.frame.name = self.name
 
-    if self.object_description and self.frame:
-      print 'create INITIAL absolute'
-      self.createAbsoluteDescription()
+    #if self.object_description and self.frame:
+    #  print 'create INITIAL absolute'
+    #  self.createAbsoluteDescription()
 
     return
 
@@ -412,31 +424,33 @@ class ObjectInstance(Base):
     return ros
 
   def createAbsoluteDescription(self):
-    self.absolute_description = ObjectDescription()
-    self.absolute_description.type = "absolute_description_" + self.name
+    print 'would create AD'
+    #self.absolute_description = ObjectDescription()
+    #self.absolute_description.type = "absolute_description_" + self.name
     
-    for model in self.object_description.geometry_models:
-      new = GeometryModel()
-      new.type = model.type
-      new.pose = LocalPose()
-      new.pose.pose = fromROSPose(nullPose())
-      new.geometry_type = model.geometry_type
-      new.geometry = self.frame.apply( model.transformed() )
+    #for model in self.object_description.geometry_models:
+      #new = GeometryModel()
+      #new.type = model.type
+      #new.pose = LocalPose()
+      #new.pose.pose = fromROSPose(nullPose())
+      #new.geometry_type = model.geometry_type
+      #new.geometry = self.frame.apply( model.transformed() )
 
-      self.absolute_description.geometry_models.append(new)
-      db().add(new)
+      #self.absolute_description.geometry_models.append(new)
+      #db().add(new)
 
-    db().add(self.absolute_description)
-    db().commit()
+    #db().add(self.absolute_description)
+    #db().commit()
 
     return
 
   def deleteAbsoluteDescription(self):
-    for model in self.absolute_description.geometry_models:
-        db().delete(model.pose)
-        db().delete(model)
-    db().delete(self.absolute_description)
-    db().commit()
+    print 'would del AD'
+    #for model in self.absolute_description.geometry_models:
+    #    db().delete(model.pose)
+    #    db().delete(model)
+    #db().delete(self.absolute_description)
+    #db().commit()
 
   #DEPRECATED
   def fromROS(self, ros):
