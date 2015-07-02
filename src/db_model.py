@@ -4,11 +4,11 @@ This file joins the different parts of the spatial database model
 and provides methods to create, truncate or drop the entire database model.
 
 '''
-
 from db_environment import *
-from db_geometry_model import *
-from db_object_model import *
 from db_pose_model import *
+from db_geometry_model import *
+from db_object_description import *
+from db_object_instance import *
 from db_transformation_tree_model import *
 
 def create_all():
