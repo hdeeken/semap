@@ -45,21 +45,21 @@ from db_transformation_tree_model import *
 # object_description: describes the object geometrically and is used in conjunction with the pose to locate the object within it's ref_system
 """
 
-class ObjectInstance(Base):
+class ObjectInstance( Base ):
   __tablename__ = 'object_instance'
-  id = Column('id', Integer, primary_key=True)
-  name = Column('name', String, nullable=False, unique=True)
-  alias = Column('alias', String, nullable=True)
-  frame_id = Column('frame_id', Integer, ForeignKey('tree.id'), nullable=True)
-  frame = relationship("FrameNode", backref=backref('object_instance', uselist=False))
+  id = Column( 'id', Integer, primary_key = True )
+  name = Column( 'name', String, nullable = False, unique = True )
+  alias = Column( 'alias', String, nullable = True )
+  frame_id = Column( 'frame_id', Integer, ForeignKey( 'tree.id' ), nullable = True)
+  frame = relationship( "FrameNode", backref = backref( 'object_instance', uselist = False ) )
 
-  object_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
-  object_description = relationship("ObjectDescription", foreign_keys=[object_description_id], backref=backref('object_instance',  uselist=True) )
+  relative_description_id = Column( Integer, ForeignKey('object_description.id' ), nullable = True )
+  relative_description = relationship( "ObjectDescription", foreign_keys = [ relative_description_id ], backref = backref( 'relative_of',  uselist=True ) )
 
-  absolute_description_id = Column(Integer, ForeignKey('object_description.id'), nullable=True)
-  absolute_description = relationship("ObjectDescription", foreign_keys=[absolute_description_id], backref=backref('instance') )
+  absolute_description_id = Column( Integer, ForeignKey( 'object_description.id' ), nullable = True)
+  absolute_description = relationship( "ObjectDescription", foreign_keys = [ absolute_description_id ], backref = backref( 'absolute_of' ) )
 
-  def __init__(self, ros):
+  def __init__( self, ros ):
 
     if ros.alias != None:
       self.alias = ros.alias
@@ -67,127 +67,197 @@ class ObjectInstance(Base):
       print 'instance without alias was created'
 
     if ros.description.id != None:
-      self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
+      self.relative_description = db().query( ObjectDescription ).filter( ObjectDescription.id == ros.description.id ).one()
       self.name = 'object'
-      
+
     else:
       print 'instance without desc was created'
       self.name = 'unknown'
 
     if ros.pose != None:
       frame = FrameNode('','')
-      frame.fromROSPoseStamped(ros.pose, self.name)
+      frame.fromROSPoseStamped( ros.pose, self.name )
       self.frame = frame
     else:
       print 'instance without frame was created'
 
     db().flush()
-    self.name+= str(self.id)
-    print 'add id', self.id
+    self.name+= str( self.id )
     self.name.lower()
     self.frame.name = self.name
-
-    #if self.object_description and self.frame:
-    #  print 'create INITIAL absolute'
-    #  self.createAbsoluteDescription()
+    self.createAbsoluteDescription()
 
     return
 
-  def getChildIDs(self):
+  def getChildIDs( self ):
     ids = []
     for key in self.frame.children.keys():
        child = self.frame.children[key]
-       ids.append(child.object_instance.id)
+       ids.append( child.object_instance.id )
     return ids
 
-  def getAPosition2D(self):
-    matrix = fromStringToMatrix(self.frame.transform)
-    return WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], 0.0))
+  def getAPosition2D( self ):
+    matrix = fromStringToMatrix( self.frame.transform )
+    return WKTElement( 'POINT(%f %f %f)' % ( matrix[0][3], matrix[1][3], 0.0) )
 
-  def getAPosition3D(self):
-    matrix = fromStringToMatrix(self.frame.transform)
-    return WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], matrix[2][3]))
+  def getAPosition3D( self ):
+    matrix = fromStringToMatrix( self.frame.transform )
+    return WKTElement( 'POINT(%f %f %f)' % ( matrix[0][3], matrix[1][3], matrix[2][3] ) )
 
-  def getABox2D(self):
-    return self.frame.apply( self.object_description.getBox2D(as_geo = True) )
+  def getABox2D( self ):
+    return self.frame.apply( self.relative_description.getBox2D( as_geo = True ) )
 
-  def getABox2D2(self):
-    return self.frame.apply( self.object_description.getBox2D(as_geo = True) )
+  def getABox3D( self ):
+     return self.frame.apply( self.relative_description.getBox3D( as_geo = True ) )
 
-  def getABox3D(self):
-     return self.frame.apply( self.object_description.getBox3D(as_geo = True) )
+  def getAABox2D( self ):
+      return db().execute( ST_Envelope( self.frame.apply( self.relative_description.getGeometryCollection() ) ) ).scalar()
 
-  def getAConvexHull2D(self):
-    return self.frame.apply( self.object_description.getConvexHull2D() )
+  def getAABox3D( self ):
+     return box3DtoPolygonMeshGeometry( db().execute( ST_3DExtent( self.frame.apply( self.relative_description.getGeometryCollection() ) ) ).scalar() )
 
-  def getAConvexHull3D(self):
-    return self.frame.apply( self.object_description.getConvexHull3D() )
+  def getAConvexHull2D( self ):
+    return self.frame.apply( self.relative_description.getConvexHull2D() )
 
-  def toAbsoluteFootprintBoxModel(self):
+  def getAConvexHull3D( self ):
+    return self.frame.apply( self.relative_description.getConvexHull3D() )
+
+  def toPosition2DModel( self ):
     ros = Polygon2DModel()
-    ros.type = "AbsoluteFootprintBox"
+    ros.type = "Position2D"
+    ros.geometry = toPoint2D( self.getAPosition2D() )
+    return ros
+
+  def toPosition3DModel( self ):
+    ros = Polygon3DModel()
+    ros.type = "Position3D"
+    ros.geometry = toPoint3D( self.getAPosition3D() )
+    return ros
+
+  def toAxisAlignedFootprintBoxModel( self ):
+    ros = Polygon2DModel()
+    ros.type = "AxisAligned2D"
+    ros.geometry = toPolygon2D( self.getAABox2D() )
+    return ros
+
+  def toAxisAlignedBoundingBoxModel( self ):
+    ros = Polygon2DModel()
+    ros.type = "AxisAligned3D"
+    ros.geometry = toPolygonMesh3D( self.getAABox3D() )
+    return ros
+
+  def toAxisAlignedFootprintBoxModel( self ):
+    ros = Polygon2DModel()
+    ros.type = "AxisAligned3D"
+    ros.geometry = toPolygon2D( self.getAABox2D() )
+    return ros
+
+  def toAbsoluteFootprintBoxModel( self ):
+    ros = Polygon2DModel()
+    ros.type = "FootprintBox"
     ros.geometry = toPolygon2D( self.getABox2D() )
     return ros
 
-  def toAbsoluteFootprintHullModel(self):
+  def toAbsoluteFootprintHullModel( self ):
     ros = Polygon2DModel()
-    ros.type = "AbsoluteFootprintHull"
+    ros.type = "FootprintHull"
     ros.geometry = toPolygon2D( self.getAConvexHull2D() )
     return ros
 
-  def toAbsoluteBoundingBoxModel(self):
+  def toAbsoluteBoundingBoxModel( self ):
     ros = PolygonMesh3DModel()
-    ros.type = "AbsoluteBoundingBox"
+    ros.type = "BoundingBox"
     ros.geometry = toPolygonMesh3D( self.getABox3D() )
     return ros
 
-  def toAbsoluteBoundingHullModel(self):
+  def toAbsoluteBoundingHullModel( self ):
     ros = PolygonMesh3DModel()
-    ros.type = "AbsoluteBoundingHull"
+    ros.type = "BoundingHull"
     ros.geometry = toPolygonMesh3D( self.getAConvexHull3D() )
     return ros
 
-  def createAbsoluteDescription(self):
-    print 'would create AD'
-    #self.absolute_description = ObjectDescription()
-    #self.absolute_description.type = "absolute_description_" + self.name
-    
-    #for model in self.object_description.geometry_models:
-      #new = GeometryModel()
-      #new.type = model.type
-      #new.pose = LocalPose()
-      #new.pose.pose = fromROSPose(nullPose())
-      #new.geometry_type = model.geometry_type
-      #new.geometry = self.frame.apply( model.transformed() )
+  def createAbsoluteDescription( self ):
 
-      #self.absolute_description.geometry_models.append(new)
-      #db().add(new)
+    if self.relative_description and self.frame:
+      self.absolute_description = ObjectDescription()
+      self.absolute_description.type = "absolute_description_" + self.name
+      for model in self.relative_description.geometries:
+        new = GeometryModel()
+        new.type = model.type
+        new.pose = LocalPose()
+        new.pose.pose = fromROSPose( nullPose() )
+        new.geometry_type = model.geometry_type
+        new.geometry = self.frame.apply( model.transformed() )
+        self.absolute_description.geometries.append(new)
 
-    #db().add(self.absolute_description)
-    #db().commit()
+      new = GeometryModel()
+      new.fromROSPoint2DModel( self.toPosition2DModel() )
+      self.absolute_description.abstractions.append( new )
 
+      new = GeometryModel()
+      new.fromROSPoint3DModel( self.toPosition3DModel() )
+      self.absolute_description.abstractions.append( new )
+
+      if self.relative_description.geometries:
+        new = GeometryModel()
+        new.fromROSPolygon2DModel( self.toAxisAlignedFootprintBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAxisAlignedBoundingBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygon2DModel( self.toAxisAlignedFootprintBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygon2DModel( self.toAbsoluteFootprintBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygon2DModel( self.toAbsoluteFootprintHullModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAbsoluteBoundingBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAbsoluteBoundingHullModel() )
+        self.absolute_description.abstractions.append( new )
+      else:
+       print 'keine geo fur absolute geos'
+
+      db().add(self.absolute_description)
+      db().commit()
+    else:
+      print 'cant create abs desc, either rel desc or frame is missing'
     return
 
-  def deleteAbsoluteDescription(self):
-    print 'would del AD'
-    #for model in self.absolute_description.geometry_models:
-    #    db().delete(model.pose)
-    #    db().delete(model)
-    #db().delete(self.absolute_description)
-    #db().commit()
+  def deleteAbsoluteDescription( self ):
+    if self.absolute_description:
+      db().delete(self.absolute_description)
+      db().commit()
+    else:
+      print 'no abs desc to be deleted'
+
+  def updateAbsoluteDescription( self ):
+    self.deleteAbsoluteDescription()
+    self.createAbsoluteDescription()
 
   #DEPRECATED
   def fromROS(self, ros):
-    self.object_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
-    print self.object_description
-    print self.object_description.name
+    self.relative_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
+    print self.relative_description
+    print self.relative_description.name
     self.alias = ros.alias
     frame = FrameNode('','')
     frame.fromROSPoseStamped(ros.pose, self.name)
     self.frame = frame
     return
 
-  def toROS(self):
+  def toROS( self ):
     ros = ROSObjectInstance()
     ros.id = self.id
     ros.name = str(self.name)
@@ -200,8 +270,8 @@ class ObjectInstance(Base):
     else:
       ros.pose = ROSPoseStamped()
 
-    if self.object_description:
-      ros.description = self.object_description.toROS()
+    if self.relative_description:
+      ros.description = self.relative_description.toROS()
     else:
       ros.description = ROSObjectDescription()
 
@@ -212,38 +282,32 @@ class ObjectInstance(Base):
 
     return ros
 
-  #ros.description.polygon2d_models.append( self.toAbsoluteFootprintBoxModel() )
-  #ros.description.polygon2d_models.append( self.toAbsoluteFootprintHullModel() )
-
-  #ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingBoxModel() )
-  #ros.description.polygonmesh3d_models.append( self.toAbsoluteBoundingHullModel() )
-
   '''
-    #def __before_commit_delete__(self):
+    #def __before_commit_delete__( self ):
     #  print 'INSTANCE - BEFORE COMMIT - DELETE'
 
-    #def __before_commit_insert__(self):
+    #def __before_commit_insert__( self ):
     #  print 'INSTANCE - BEFORE COMMIT - INSERT'
 
-    #def __before_commit_update__(self):
+    #def __before_commit_update__( self ):
     #  print 'INSTANCE - BEFORE COMMIT - UPDATE'
 
-    #def __after_commit_insert__(self):
+    #def __after_commit_insert__( self ):
     #  print 'INSTANCE - AFTER COMMIT - INSERT'
 
-    #def __after_commit_update__(self):
+    #def __after_commit_update__( self ):
     #  print 'INSTANCE - AFTER COMMIT - UPDATE'
   '''
 
   #das laeuft
   @hybrid_method
-  def tester(self):
-     print db().execute(WKTElement('POINT(0.0 0.0 0.0)' )).scalar()
-     return db().execute(WKTElement('POINT(0.0 0.0 0.0)' )).scalar()
+  def tester( self ):
+    print db().execute( WKTElement( 'POINT(0.0 0.0 0.0)' ) ).scalar()
+    return db().execute( WKTElement('POINT(0.0 0.0 0.0)' ) ).scalar()
     #return ST_Distance( self.getABox2D(), WKTElement('POINT(1.0 0.0 0.0)') ) > 0
 
   @hybrid_method
-  def gimme(self):
+  def gimme( self ):
     abc = [0, 1 , 3]
     print self.frame, 'is da id'
     frame = self.frame
@@ -251,7 +315,7 @@ class ObjectInstance(Base):
     return abc
 
   @hybrid_method
-  def tester2(self):
+  def tester2( self ):
   #  matrix = fromStringToMatrix(self.frame.transform)
 
     a = self.gimme()[0]

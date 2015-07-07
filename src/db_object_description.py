@@ -86,11 +86,28 @@ class ObjectDescription(Base):
     ros.type = str( self.type )
 
     if self.geometries:
-      models = self.geometries
-      if self.abstractions:
-        models += self.abstractions
+      for model in self.geometries:
+        if model.geometry_type == 'POINT2D':
+          ros.point2d_models.append( model.toROSPoint2DModel() )
+        elif model.geometry_type == 'POSE2D':
+          ros.pose2d_models.append( model.toROSPose2DModel() )
+        elif model.geometry_type == 'POLYGON2D':
+          ros.polygon2d_models.append( model.toROSPolygon2DModel() )
+        elif model.geometry_type == 'POINT3D':
+          ros.point3d_models.append( model.toROSPoint3DModel() )
+        elif model.geometry_type == 'POSE3D':
+          ros.pose3d_models.append( model.toROSPose3DModel() )
+        elif model.geometry_type == 'POLYGON3D':
+          ros.polygon3d_models.append( model.toROSPolygon3DModel() )
+        elif model.geometry_type == 'TRIANGLEMESH3D':
+          ros.trianglemesh3d_models.append( model.toROSTriangleMesh3DModel() )
+        elif model.geometry_type == 'POLYGONMESH3D':
+          ros.polygonmesh3d_models.append( model.toROSPolygonMesh3DModel() )
+        else:
+          print 'ERROR: found unknown geometry type:', model.geometry_type
 
-      for model in models:
+    if self.abstractions:
+      for model in self.abstractions:
         if model.geometry_type == 'POINT2D':
           ros.point2d_models.append( model.toROSPoint2DModel() )
         elif model.geometry_type == 'POSE2D':
@@ -173,6 +190,7 @@ class ObjectDescription(Base):
   # Abstractions
 
   def createAbstractions( self ):
+
     if self.geometries:
       model = GeometryModel()
       model.fromROSPolygon2DModel( self.toFootprintBoxModel() )
@@ -182,16 +200,18 @@ class ObjectDescription(Base):
       model.fromROSPolygon2DModel( self.toFootprintHullModel() )
       self.abstractions.append( model )
 
-      #model = GeometryModel()
-      #model.fromROSPolygonMesh3DModel(self.toBoundingBoxModel())
-      #self.geometry_models.append( model )
-      #model = GeometryModel()
-      #model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
-      #self.geometry_models.append( model )
+      model = GeometryModel()
+      model.fromROSPolygonMesh3DModel(self.toBoundingBoxModel())
+      self.abstractions.append( model )
+
+      model = GeometryModel()
+      model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
+      self.abstractions.append( model )
     else:
       print 'have no geometries'
 
     db().commit()
+
     return
 
   def deleteAbstractions( self ):
