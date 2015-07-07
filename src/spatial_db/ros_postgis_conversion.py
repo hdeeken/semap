@@ -60,7 +60,7 @@ def toPolygon2D(geometry, is_text = False):
 # 3D Geometry
 
 def fromPoint3D(geometry):
-  return WKTElement( 'POINT(%f %f %f)' % (model.geometry.x, model.geometry.y, model.geometry.z) )
+  return WKTElement( 'POINT(%f %f %f)' % (geometry.x, geometry.y, geometry.z) )
 
 def toPoint3D(geometry, is_text = False):
   if not is_text:
@@ -139,7 +139,7 @@ def fromPolygonMesh3D(geometry):
     for index in polygon.vertex_indices:
       vertex =  geometry.vertices[index]
       polygon_string = polygon_string + '%f %f %f,' % ( vertex.x, vertex.y, vertex.z)
-    vertex =  geometry.vertices[0]
+    vertex =  geometry.vertices[ polygon.vertex_indices[0] ]
     polygon_string= '(('+ polygon_string + '%f %f %f))' % ( vertex.x, vertex.y, vertex.z)
     polygon_strings.append(polygon_string)
   infix = ",".join(polygon_strings)
@@ -181,7 +181,6 @@ def box3Dvalues(box3d):
 def box3DtoPolygonMesh(box3d):
 
   values = box3Dvalues(box3d)
-
 
   p0 = [ values[0], values[2], values[4] ]
   p1 = [ values[0], values[3], values[4] ]

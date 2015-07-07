@@ -35,7 +35,6 @@ class LocalPose(Base):
      return toROSPose(self.pose)
 
   def fromROS(self, ros):
-    print 'Local pose set for model:', self.geometry_model.type
     self.pose = fromROSPose(ros)
     return
 
