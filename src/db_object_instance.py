@@ -97,30 +97,30 @@ class ObjectInstance( Base ):
     return ids
 
   def getAPosition2D( self ):
-    matrix = fromStringToMatrix( self.frame.transform )
+    matrix = fromTransformToMatrix( self.frame.root_transform )
     return WKTElement( 'POINT(%f %f %f)' % ( matrix[0][3], matrix[1][3], 0.0) )
 
   def getAPosition3D( self ):
-    matrix = fromStringToMatrix( self.frame.transform )
+    matrix = fromTransformToMatrix( self.frame.root_transform )
     return WKTElement( 'POINT(%f %f %f)' % ( matrix[0][3], matrix[1][3], matrix[2][3] ) )
 
   def getABox2D( self ):
-    return self.frame.apply( self.relative_description.getBox2D( as_geo = True ) )
+    return self.frame.apply_root_transform( self.relative_description.getBox2D( as_geo = True ) )
 
   def getABox3D( self ):
-     return self.frame.apply( self.relative_description.getBox3D( as_geo = True ) )
+     return self.frame.apply_root_transform( self.relative_description.getBox3D( as_geo = True ) )
 
   def getAABox2D( self ):
-      return db().execute( ST_Envelope( self.frame.apply( self.relative_description.getGeometryCollection() ) ) ).scalar()
+      return db().execute( ST_Envelope( self.frame.apply_root_transform( self.relative_description.getGeometryCollection() ) ) ).scalar()
 
   def getAABox3D( self ):
-     return box3DtoPolygonMeshGeometry( db().execute( ST_3DExtent( self.frame.apply( self.relative_description.getGeometryCollection() ) ) ).scalar() )
+     return box3DtoPolygonMeshGeometry( db().execute( ST_3DExtent( self.frame.apply_root_transform( self.relative_description.getGeometryCollection() ) ) ).scalar() )
 
   def getAConvexHull2D( self ):
-    return self.frame.apply( self.relative_description.getConvexHull2D() )
+    return self.frame.apply_root_transform( self.relative_description.getConvexHull2D() )
 
   def getAConvexHull3D( self ):
-    return self.frame.apply( self.relative_description.getConvexHull3D() )
+    return self.frame.apply_root_transform( self.relative_description.getConvexHull3D() )
 
   def toPosition2DModel( self ):
     ros = Polygon2DModel()
@@ -187,7 +187,7 @@ class ObjectInstance( Base ):
         new.pose = LocalPose()
         new.pose.pose = fromROSPose( nullPose() )
         new.geometry_type = model.geometry_type
-        new.geometry = self.frame.apply( model.transformed() )
+        new.geometry = self.frame.apply_root_transform( model.transformed() )
         self.absolute_description.geometries.append(new)
 
       new = GeometryModel()

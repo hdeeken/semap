@@ -474,8 +474,16 @@ class FrameNode(Base):
 
     def apply(self, geometry):
       matrix = fromStringToMatrix(self.transform)
-      transformed_geometry = db().execute(ST_Affine(geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
-                                                 matrix[1][0], matrix[1][1], matrix[1][2], \
-                                                 matrix[2][0], matrix[2][1], matrix[2][2], \
-                                                 matrix[0][3], matrix[1][3], matrix[2][3])).scalar()
+      transformed_geometry = db().execute( ST_Affine( geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+                                                                matrix[1][0], matrix[1][1], matrix[1][2], \
+                                                                matrix[2][0], matrix[2][1], matrix[2][2], \
+                                                                matrix[0][3], matrix[1][3], matrix[2][3] ) ).scalar()
+      return transformed_geometry
+
+    def apply_root_transform(self, geometry):
+      matrix = fromTransformToMatrix( self.root_transform )
+      transformed_geometry = db().execute( ST_Affine( geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+                                                                matrix[1][0], matrix[1][1], matrix[1][2], \
+                                                                matrix[2][0], matrix[2][1], matrix[2][2], \
+                                                                matrix[0][3], matrix[1][3], matrix[2][3] ) ).scalar()
       return transformed_geometry
