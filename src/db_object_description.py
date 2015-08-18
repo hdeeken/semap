@@ -43,35 +43,35 @@ class ObjectDescription(Base):
 
   def fromROS(self, ros):
     self.type = ros.type
-    for model in ros.point2d_models:
+    for model in ros.geometries.point2d_models:
         model = GeometryModel()
         model.fromROSPoint2DModel( model )
         self.geometries.append( model )
-    for model in ros.pose2d_models:
+    for model in ros.geometries.pose2d_models:
         model = GeometryModel()
         model.fromROSPose2DModel( model )
         self.geometries.append( model )
-    for model in ros.polygon2d_models:
+    for model in ros.geometries.polygon2d_models:
         model = GeometryModel()
         model.fromROSPolygon2DModel( model )
         self.geometries.append( model )
-    for model in ros.point3d_models:
+    for model in ros.geometries.point3d_models:
         model = GeometryModel()
         model.fromROSPoint3DModel( model )
         self.geometries.append( model )
-    for model in ros.pose3d_models:
+    for model in ros.geometries.pose3d_models:
         model = GeometryModel()
         model.fromROSPose3DModel( model )
         self.geometries.append( model )
-    for model in ros.polygon3d_models:
+    for model in ros.geometries.polygon3d_models:
         model = GeometryModel()
         model.fromROSPolygon3DModel( model )
         self.geometries.append( model )
-    for model in ros.trianglemesh3d_models:
+    for model in ros.geometries.trianglemesh3d_models:
         model = GeometryModel()
         model.fromROSTriangleMesh3DModel( model )
         self.geometries.append( model )
-    for model in ros.polygonmesh3d_models:
+    for model in ros.geometries.polygonmesh3d_models:
         model = GeometryModel()
         model.fromROSPolygonMesh3DModel( model )
         self.geometries.append( model )
@@ -88,42 +88,42 @@ class ObjectDescription(Base):
     if self.geometries:
       for model in self.geometries:
         if model.geometry_type == 'POINT2D':
-          ros.point2d_models.append( model.toROSPoint2DModel() )
+          ros.geometries.point2d_models.append( model.toROSPoint2DModel() )
         elif model.geometry_type == 'POSE2D':
-          ros.pose2d_models.append( model.toROSPose2DModel() )
+          ros.geometries.pose2d_models.append( model.toROSPose2DModel() )
         elif model.geometry_type == 'POLYGON2D':
-          ros.polygon2d_models.append( model.toROSPolygon2DModel() )
+          ros.geometries.polygon2d_models.append( model.toROSPolygon2DModel() )
         elif model.geometry_type == 'POINT3D':
-          ros.point3d_models.append( model.toROSPoint3DModel() )
+          ros.geometries.point3d_models.append( model.toROSPoint3DModel() )
         elif model.geometry_type == 'POSE3D':
-          ros.pose3d_models.append( model.toROSPose3DModel() )
+          ros.geometries.pose3d_models.append( model.toROSPose3DModel() )
         elif model.geometry_type == 'POLYGON3D':
-          ros.polygon3d_models.append( model.toROSPolygon3DModel() )
+          ros.geometries.polygon3d_models.append( model.toROSPolygon3DModel() )
         elif model.geometry_type == 'TRIANGLEMESH3D':
-          ros.trianglemesh3d_models.append( model.toROSTriangleMesh3DModel() )
+          ros.geometries.trianglemesh3d_models.append( model.toROSTriangleMesh3DModel() )
         elif model.geometry_type == 'POLYGONMESH3D':
-          ros.polygonmesh3d_models.append( model.toROSPolygonMesh3DModel() )
+          ros.geometries.polygonmesh3d_models.append( model.toROSPolygonMesh3DModel() )
         else:
           print 'ERROR: found unknown geometry type:', model.geometry_type
 
     if self.abstractions:
       for model in self.abstractions:
         if model.geometry_type == 'POINT2D':
-          ros.point2d_models.append( model.toROSPoint2DModel() )
+          ros.abstractions.point2d_models.append( model.toROSPoint2DModel() )
         elif model.geometry_type == 'POSE2D':
-          ros.pose2d_models.append( model.toROSPose2DModel() )
+          ros.abstractions.pose2d_models.append( model.toROSPose2DModel() )
         elif model.geometry_type == 'POLYGON2D':
-          ros.polygon2d_models.append( model.toROSPolygon2DModel() )
+          ros.abstractions.polygon2d_models.append( model.toROSPolygon2DModel() )
         elif model.geometry_type == 'POINT3D':
-          ros.point3d_models.append( model.toROSPoint3DModel() )
+          ros.abstractions.point3d_models.append( model.toROSPoint3DModel() )
         elif model.geometry_type == 'POSE3D':
-          ros.pose3d_models.append( model.toROSPose3DModel() )
+          ros.abstractions.pose3d_models.append( model.toROSPose3DModel() )
         elif model.geometry_type == 'POLYGON3D':
-          ros.polygon3d_models.append( model.toROSPolygon3DModel() )
+          ros.abstractions.polygon3d_models.append( model.toROSPolygon3DModel() )
         elif model.geometry_type == 'TRIANGLEMESH3D':
-          ros.trianglemesh3d_models.append( model.toROSTriangleMesh3DModel() )
+          ros.abstractions.trianglemesh3d_models.append( model.toROSTriangleMesh3DModel() )
         elif model.geometry_type == 'POLYGONMESH3D':
-          ros.polygonmesh3d_models.append( model.toROSPolygonMesh3DModel() )
+          ros.abstractions.polygonmesh3d_models.append( model.toROSPolygonMesh3DModel() )
         else:
           print 'ERROR: found unknown geometry type:', model.geometry_type
 
@@ -207,6 +207,17 @@ class ObjectDescription(Base):
       model = GeometryModel()
       model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
       self.abstractions.append( model )
+
+      for m in self.toBoundingBoxFaceModels():
+        model = GeometryModel()
+        model.fromROSPolygon3DModel( m )
+        self.abstractions.append( model )
+
+      for m in self.toBoundingBoxFaceExtrusionModels(5.0):
+        model = GeometryModel()
+        model.fromROSPolygonMesh3DModel( m )
+        self.abstractions.append( model )
+
     else:
       print 'have no geometries'
 
@@ -222,6 +233,7 @@ class ObjectDescription(Base):
     return
 
   def updateAbstractions( self ):
+    print 'update Abstractions'
     self.deleteAbstractions()
     self.createAbstractions()
 
@@ -229,7 +241,7 @@ class ObjectDescription(Base):
 
   def getInstancesIDs( self ):
     ids = []
-    for inst in self.object_instance:
+    for inst in self.relative_of:
       ids.append( inst.id )
     return ids
 
@@ -292,3 +304,73 @@ class ObjectDescription(Base):
     ros.type = "FootprintHull"
     ros.geometry = toPolygon2D( self.getConvexHull2D() )
     return ros
+
+  def toBoundingBoxFaceModels( self ):
+    models = []
+    
+    for p in box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar() ):
+      ros = Polygon3DModel()
+      ros.type = ""
+      ros.geometry = toPolygon3D( p )
+      models.append(ros)
+
+    models[0].type = "Back"
+    models[1].type = "Right"
+    models[2].type = "Bottom"
+    models[3].type = "Front"
+    models[4].type = "Left"
+    models[5].type = "Top"
+
+    return models
+
+  def toBoundingBoxFaceExtrusionModels( self, distance):
+    models = []
+
+    faces = box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar() )
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[0] , -distance, 0 , 0 ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[1] , 0, -distance,  0 ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BottomExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[2] , 0, 0, -distance ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[3] , distance, 0 ,0 ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[4] , 0, distance ,0 ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopExtrusion"
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[5] , 0, 0 , distance) ).scalar() )
+    models.append(ros)
+
+    #  0     1     2     3     4     5
+    # [minX, maxX, minY, maxY, minZ, maxZ]
+
+    values = box3Dvalues(db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar())
+
+    extended_values = box3Dvalues(db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar())
+    extended_values[0] -= distance
+    extended_values[1] += -distance
+    extended_values[2] -= distance
+    extended_values[3] += distance
+    extended_values[4] -= distance
+    extended_values[5] += -distance
+
+    
+    
+    return models

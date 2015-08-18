@@ -122,6 +122,15 @@ class ObjectInstance( Base ):
   def getAConvexHull3D( self ):
     return self.frame.apply_root_transform( self.relative_description.getConvexHull3D() )
 
+  def getExtrudedABB2D( self ):
+     return db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( self.relative_description.getBox2D( ) ), 0 ,0, 1 ) ).scalar()
+
+  def getExtrudedACH2D( self ):
+     return db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( self.relative_description.getConvexHull2D( ) ), 2 ,0, 1 ) ).scalar()
+
+  def getExtrudedACH3D( self ):
+     return db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( self.relative_description.getConvexHull3D( ) ), 2 ,0, 1 ) ).scalar()
+
   def toPosition2DModel( self ):
     ros = Polygon2DModel()
     ros.type = "Position2D"
@@ -146,12 +155,6 @@ class ObjectInstance( Base ):
     ros.geometry = toPolygonMesh3D( self.getAABox3D() )
     return ros
 
-  def toAxisAlignedFootprintBoxModel( self ):
-    ros = Polygon2DModel()
-    ros.type = "AxisAligned3D"
-    ros.geometry = toPolygon2D( self.getAABox2D() )
-    return ros
-
   def toAbsoluteFootprintBoxModel( self ):
     ros = Polygon2DModel()
     ros.type = "FootprintBox"
@@ -161,6 +164,7 @@ class ObjectInstance( Base ):
   def toAbsoluteFootprintHullModel( self ):
     ros = Polygon2DModel()
     ros.type = "FootprintHull"
+    ros.pose = nullPose()
     ros.geometry = toPolygon2D( self.getAConvexHull2D() )
     return ros
 
@@ -175,6 +179,132 @@ class ObjectInstance( Base ):
     ros.type = "BoundingHull"
     ros.geometry = toPolygonMesh3D( self.getAConvexHull3D() )
     return ros
+
+  def toAbsoluteExtrudedBoundingBox2DModel( self ):
+    ros = PolygonMesh3DModel()
+    ros.type = "ExtrudedBB2D"
+    ros.geometry = toPolygonMesh3D( self.getExtrudedABB2D() )
+    return ros
+
+  def toAbsoluteExtrudedConvexHull2DModel( self ):
+    ros = PolygonMesh3DModel()
+    ros.type = "ExtrudedCH2D"
+    ros.geometry = toPolygonMesh3D( self.getExtrudedACH2D() )
+    return ros
+
+  def toAbsoluteExtrudedConvexHull3DModel( self ):
+    ros = PolygonMesh3DModel()
+    ros.type = "ExtrudedCH3D"
+    ros.geometry = toPolygonMesh3D( self.getExtrudedACH3D() )
+    return ros
+
+  def toAbsoluteBoundingBoxFaceModels( self ):
+    models = []
+
+    faces = box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.relative_description.getGeometryCollection() ) ).scalar() )
+
+    print faces[0]
+    ros = Polygon3DModel()
+    ros.type = "Back"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[0] ) )
+    models.append(ros)
+
+    ros = Polygon3DModel()
+    ros.type = "Right"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[1] ) )
+    models.append(ros)
+
+    ros = Polygon3DModel()
+    ros.type = "Bottom"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[2] ) )
+    models.append(ros)
+
+    ros = Polygon3DModel()
+    ros.type = "Front"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[3] ) )
+    models.append(ros)
+
+    ros = Polygon3DModel()
+    ros.type = "Left"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[4] ) )
+    models.append(ros)
+
+    ros = Polygon3DModel()
+    ros.type = "Top"
+    ros.geometry = toPolygon3D( self.frame.apply_root_transform( faces[5] ) )
+    models.append(ros)
+
+    return models
+
+  def toAbsoluteBoundingBoxFaceExtrusionModels( self, distance):
+    models = []
+
+    faces = box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.relative_description.getGeometryCollection() ) ).scalar() )
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(-%f 0.0 0.0)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[0] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(0.0 -%f 0.0)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[1] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BottomExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(0.0 0.0 -%f)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[2] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(%f 0.0 0.0)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[3] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(0.0 %f 0.0)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[4] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(0.0 0.0 %f)' % distance) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[5] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopLeftExtrusion"
+    point = self.frame.apply_root_transform( WKTElement( 'POINT(%f %f %f)' % ( distance, distance, 0.0) ) )
+    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( self.frame.apply_root_transform( faces[2] ),
+                                                                  db().execute( ST_X( point ) ).scalar() ,
+                                                                  db().execute( ST_Y( point ) ).scalar() ,
+                                                                  db().execute( ST_Z( point ) ).scalar() ) ).scalar() )
+    models.append(ros)
+
+    return models
 
   def createAbsoluteDescription( self ):
 
@@ -202,15 +332,7 @@ class ObjectInstance( Base ):
         new = GeometryModel()
         new.fromROSPolygon2DModel( self.toAxisAlignedFootprintBoxModel() )
         self.absolute_description.abstractions.append( new )
-
-        new = GeometryModel()
-        new.fromROSPolygonMesh3DModel( self.toAxisAlignedBoundingBoxModel() )
-        self.absolute_description.abstractions.append( new )
-
-        new = GeometryModel()
-        new.fromROSPolygon2DModel( self.toAxisAlignedFootprintBoxModel() )
-        self.absolute_description.abstractions.append( new )
-
+        
         new = GeometryModel()
         new.fromROSPolygon2DModel( self.toAbsoluteFootprintBoxModel() )
         self.absolute_description.abstractions.append( new )
@@ -220,12 +342,40 @@ class ObjectInstance( Base ):
         self.absolute_description.abstractions.append( new )
 
         new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAxisAlignedBoundingBoxModel() )
+        self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
         new.fromROSPolygonMesh3DModel( self.toAbsoluteBoundingBoxModel() )
         self.absolute_description.abstractions.append( new )
 
         new = GeometryModel()
         new.fromROSPolygonMesh3DModel( self.toAbsoluteBoundingHullModel() )
         self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAbsoluteExtrudedConvexHull2DModel() )
+        #self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAbsoluteExtrudedConvexHull3DModel() )
+        #self.absolute_description.abstractions.append( new )
+
+        new = GeometryModel()
+        new.fromROSPolygonMesh3DModel( self.toAbsoluteExtrudedBoundingBox2DModel() )
+        #self.absolute_description.abstractions.append( new )
+
+        #for model in self.toAbsoluteBoundingBoxFaceModels():
+        #  new = GeometryModel()
+        #  new.fromROSPolygon3DModel( model )
+        #  self.absolute_description.abstractions.append( new )
+
+        #for model in self.toAbsoluteBoundingBoxFaceExtrusionModels(5.0):
+        #  new = GeometryModel()
+        #  new.fromROSPolygonMesh3DModel( model )
+        #  self.absolute_description.abstractions.append( new )
+
+
       else:
        print 'keine geo fur absolute geos'
 
@@ -249,8 +399,6 @@ class ObjectInstance( Base ):
   #DEPRECATED
   def fromROS(self, ros):
     self.relative_description = db().query(ObjectDescription).filter(ObjectDescription.id == ros.description.id).one()
-    print self.relative_description
-    print self.relative_description.name
     self.alias = ros.alias
     frame = FrameNode('','')
     frame.fromROSPoseStamped(ros.pose, self.name)

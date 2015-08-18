@@ -182,6 +182,8 @@ def box3DtoPolygonMesh(box3d):
 
   values = box3Dvalues(box3d)
 
+  #[minX, maxX, minY, maxY, minZ, maxZ]
+
   p0 = [ values[0], values[2], values[4] ]
   p1 = [ values[0], values[3], values[4] ]
   p2 = [ values[0], values[3], values[5] ]
@@ -219,7 +221,8 @@ def box3DtoPolygonMesh(box3d):
 def box3DtoPolygonMeshGeometry(box3d):
 
   values = box3Dvalues(box3d)
-
+  #  0     1     2     3     4     5
+  # [minX, maxX, minY, maxY, minZ, maxZ]
   p0 = [ values[0], values[2], values[4] ]
   p1 = [ values[0], values[3], values[4] ]
   p2 = [ values[0], values[3], values[5] ]
@@ -251,3 +254,39 @@ def box3DtoPolygonMeshGeometry(box3d):
     polygon_strings.append(polygon_string)
   infix = ",".join(polygon_strings)
   return WKTElement(prefix + infix + postfix)
+
+def box3DtoBoundingBoxFaces(box3d):
+
+  values = box3Dvalues(box3d)
+  #  0     1     2     3     4     5
+  # [minX, maxX, minY, maxY, minZ, maxZ]
+  p0 = [ values[0], values[2], values[4] ]
+  p1 = [ values[0], values[3], values[4] ]
+  p2 = [ values[0], values[3], values[5] ]
+  p3 = [ values[0], values[2], values[5] ]
+
+  p4 = [ values[1], values[2], values[4] ]
+  p5 = [ values[1], values[3], values[4] ]
+  p6 = [ values[1], values[3], values[5] ]
+  p7 = [ values[1], values[2], values[5] ]
+
+  f0 = [p0, p1, p2, p3]
+  f1 = [p0, p4, p7, p3]
+  f2 = [p0, p4, p5, p1]
+  f3 = [p4, p5, p6, p7]
+  f4 = [p1, p5, p6, p2]
+  f5 = [p3, p7, p6, p2]
+
+  faces = [f0, f1, f2, f3, f4, f5]
+
+  prefix = 'POLYGON(('
+  polygon_strings = []
+  polygons = []
+  for face in faces:
+    polygon_string = ''
+    for point in face:
+      polygon_string = polygon_string + '%f %f %f,' % ( point[0], point[1], point[2])
+    point =  face[0]
+    polygon_string= prefix + polygon_string + '%f %f %f))' % ( point[0], point[1], point[2])
+    polygons.append(WKTElement(polygon_string))
+  return polygons

@@ -44,8 +44,24 @@ class GeometryModel(Base):
 
   # 2D Geometry
 
+  def applyROSPose(self, ros_pose):
+    quaternion = [ros_pose.orientation.x, ros_pose.orientation.y, \
+                  ros_pose.orientation.z, ros_pose.orientation.w]
+    matrix = quaternion_matrix(quaternion)
+    matrix[0][3] = ros_pose.position.x
+    matrix[1][3] = ros_pose.position.y
+    matrix[2][3] = ros_pose.position.z
+    print matrix
+    self.geometry = db().execute( ST_Affine(self.geometry, matrix[0][0], matrix[0][1], matrix[0][2], \
+                                               matrix[1][0], matrix[1][1], matrix[1][2], \
+                                               matrix[2][0], matrix[2][1], matrix[2][2], \
+                                               matrix[0][3], matrix[1][3], matrix[2][3]) ).scalar()
+
   def transformed(self, as_text = False):
     return self.pose.apply(self.geometry, as_text)
+
+  def getBoundingBoxValues( self, as_ = True ):
+    return box3Dvalues( db().execute( ST_3DExtent( self.transformed() ) ).scalar() )
 
   def fromROSPoint2DModel(self, model):
     self.type = model.type
@@ -168,7 +184,6 @@ class GeometryModel(Base):
     ros = PolygonMesh3DModel()
     ros.id = self.id
     ros.type = str(self.type)
-    ros.pose = self.pose.toROS()
     ros.pose = self.pose.toROS()
     ros.geometry = toPolygonMesh3D(self.geometry)
     return ros

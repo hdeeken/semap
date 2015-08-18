@@ -1,4 +1,5 @@
 from geoalchemy2.functions import GenericFunction
+from geoalchemy2.comparator import Comparator
 
 class cos(GenericFunction):
     name = 'cos'
@@ -56,6 +57,18 @@ class ST_ZMin(GenericFunction):
     name = 'ST_ZMin'
     type = None
 
+class ST_X(GenericFunction):
+    name = 'ST_X'
+    type = None
+
+class ST_Y(GenericFunction):
+    name = 'ST_Y'
+    type = None
+
+class ST_Z(GenericFunction):
+    name = 'ST_Z'
+    type = None
+
 class ST_ConcaveHull(GenericFunction):
     name = 'ST_ConcaveHull'
     type = None
@@ -104,8 +117,16 @@ class ST_Within(GenericFunction):
     name = 'ST_Within'
     type = None
 
+class ST_Overlaps(GenericFunction):
+    name = 'ST_Overlaps'
+    type = None
+
 class ST_Contains(GenericFunction):
     name = 'ST_Contains'
+    type = None
+
+class ST_Crosses(GenericFunction):
+    name = 'ST_Crosses'
     type = None
 
 class ST_Intersects(GenericFunction):
@@ -154,6 +175,10 @@ class ST_ConvexHull(GenericFunction):
 
 class ST_IsPlanar(GenericFunction):
     name = 'ST_IsPlanar'
+    type = None
+
+class ST_Buffer(GenericFunction):
+    name = 'ST_Buffer'
     type = None
 
 #### SFCGAL IMPORT
@@ -216,4 +241,8 @@ class SFCGAL_Convexhull(GenericFunction):
 
 class SFCGAL_Convexhull3D(GenericFunction):
     name = 'SFCGAL_Convexhull3D'
+    type = None
+
+class SFCGAL_Extrude(GenericFunction):
+    name = 'SFCGAL_Extrude'
     type = None
