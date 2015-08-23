@@ -25,6 +25,9 @@ from db_pose_model import *
 from db_geometry_model import *
 from db_transformation_tree_model import *
 
+from spatial_db.box3d_functions import *
+
+
 """ ObjectDescription
 # defines the geometric appearence of a object of a specific type, and is the blueprint object instances
 # type: defines the type of object (e.g. Table)
@@ -208,12 +211,12 @@ class ObjectDescription(Base):
       model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
       self.abstractions.append( model )
 
-      for m in self.toBoundingBoxFaceModels():
-        model = GeometryModel()
-        model.fromROSPolygon3DModel( m )
-        self.abstractions.append( model )
+      #for m in self.toBoundingBoxFaceModels():
+      #  model = GeometryModel()
+      #  model.fromROSPolygon3DModel( m )
+      #  self.abstractions.append( model )
 
-      for m in self.toBoundingBoxFaceExtrusionModels(5.0):
+      for m in self.toBoundingBoxExtrusionModels(5.0):
         model = GeometryModel()
         model.fromROSPolygonMesh3DModel( m )
         self.abstractions.append( model )
@@ -307,7 +310,7 @@ class ObjectDescription(Base):
 
   def toBoundingBoxFaceModels( self ):
     models = []
-    
+
     for p in box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar() ):
       ros = Polygon3DModel()
       ros.type = ""
@@ -323,54 +326,139 @@ class ObjectDescription(Base):
 
     return models
 
-  def toBoundingBoxFaceExtrusionModels( self, distance):
-    models = []
+  def toBoundingBoxExtrusionModels(self, offset):
 
-    faces = box3DtoBoundingBoxFaces( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar() )
+    models = []
+    extrusions = create_extrusions( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar(), offset )
 
     ros = PolygonMesh3DModel()
-    ros.type = "BackExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[0] , -distance, 0 , 0 ) ).scalar() )
+    ros.type = "FrontExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[0] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[1] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[2] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[3] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[4] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[5] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[6] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[7] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[8] )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
     ros.type = "RightExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[1] , 0, -distance,  0 ) ).scalar() )
+    ros.geometry = toPolygonMesh3D( extrusions[9] )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
-    ros.type = "BottomExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[2] , 0, 0, -distance ) ).scalar() )
+    ros.type = "RightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[10] )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
-    ros.type = "FrontExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[3] , distance, 0 ,0 ) ).scalar() )
+    ros.type = "RightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[11] )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
     ros.type = "LeftExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[4] , 0, distance ,0 ) ).scalar() )
+    ros.geometry = toPolygonMesh3D( extrusions[12] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[13] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[14] )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
     ros.type = "TopExtrusion"
-    ros.geometry = toPolygonMesh3D( db().execute( SFCGAL_Extrude( faces[5] , 0, 0 , distance) ).scalar() )
+    ros.geometry = toPolygonMesh3D( extrusions[15] )
     models.append(ros)
 
-    #  0     1     2     3     4     5
-    # [minX, maxX, minY, maxY, minZ, maxZ]
+    ros = PolygonMesh3DModel()
+    ros.type = "BotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[16] )
+    models.append(ros)
 
-    values = box3Dvalues(db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar())
+    ros = PolygonMesh3DModel()
+    ros.type = "BackExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[17] )
+    models.append(ros)
 
-    extended_values = box3Dvalues(db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar())
-    extended_values[0] -= distance
-    extended_values[1] += -distance
-    extended_values[2] -= distance
-    extended_values[3] += distance
-    extended_values[4] -= distance
-    extended_values[5] += -distance
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[18] )
+    models.append(ros)
 
-    
-    
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[19] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[20] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[21] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[22] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[23] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[24] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[25] )
+    models.append(ros)
+
     return models

@@ -168,15 +168,35 @@ def toPolygonMesh3D(geometry, is_text = False):
     mesh.polygons.append(indices)
 
   return mesh
-
-def box3Dvalues(box3d):
+'''
+def box3Dvalues(box3d, offset = 0):
   minX = db().execute( ST_XMin( box3d ) ).scalar()
   maxX = db().execute( ST_XMax( box3d ) ).scalar()
   minY = db().execute( ST_YMin( box3d ) ).scalar()
   maxY = db().execute( ST_YMax( box3d ) ).scalar()
   minZ = db().execute( ST_ZMin( box3d ) ).scalar()
   maxZ = db().execute( ST_ZMax( box3d ) ).scalar()
-  return [minX, maxX, minY, maxY, minZ, maxZ]
+  return [minX - offset, maxX + offset, minY - offset, maxY + offset, minZ - offset, maxZ + offset]
+
+def box3Dcorners(box3d, offset = 0):
+
+  box3Dvalues(box3d, offset)
+
+  p0 = [ values[0], values[2], values[4] ]
+  p1 = [ values[0], values[3], values[4] ]
+  p2 = [ values[0], values[3], values[5] ]
+  p3 = [ values[0], values[2], values[5] ]
+
+  p4 = [ values[1], values[2], values[4] ]
+  p5 = [ values[1], values[3], values[4] ]
+  p6 = [ values[1], values[3], values[5] ]
+  p7 = [ values[1], values[2], values[5] ]
+
+  return [p0, p1, p2, p3, p4, p5, p5, p6, p7]
+
+def regions(box3d, offset):
+  bc = box3Dcorners(box3d)
+  ec = box3Dcorners(box3d, offset)
 
 def box3DtoPolygonMesh(box3d):
 
@@ -194,12 +214,12 @@ def box3DtoPolygonMesh(box3d):
   p6 = [ values[1], values[3], values[5] ]
   p7 = [ values[1], values[2], values[5] ]
 
-  f0 = [p0, p1, p2, p3]
-  f1 = [p0, p4, p7, p3]
-  f2 = [p0, p4, p5, p1]
-  f3 = [p4, p5, p6, p7]
-  f4 = [p1, p5, p6, p2]
-  f5 = [p3, p7, p6, p2]
+  f0 = [p0, p1, p2, p3] #back
+  f1 = [p3, p7, p4, p0] #right
+  f2 = [p0, p4, p5, p1] #bottom
+  f3 = [p7, p6, p5, p4] #front
+  f4 = [p1, p5, p6, p2] #left
+  f5 = [p2, p6, p7, p3] #top
 
   faces = [f0, f1, f2, f3, f4, f5]
   mesh = PolygonMesh()
@@ -233,12 +253,12 @@ def box3DtoPolygonMeshGeometry(box3d):
   p6 = [ values[1], values[3], values[5] ]
   p7 = [ values[1], values[2], values[5] ]
 
-  f0 = [p0, p1, p2, p3]
-  f1 = [p0, p4, p7, p3]
-  f2 = [p0, p4, p5, p1]
-  f3 = [p4, p5, p6, p7]
-  f4 = [p1, p5, p6, p2]
-  f5 = [p3, p7, p6, p2]
+  f0 = [p0, p1, p2, p3] #back
+  f1 = [p3, p7, p4, p0] #right
+  f2 = [p0, p4, p5, p1] #bottom
+  f3 = [p7, p6, p5, p4] #front
+  f4 = [p1, p5, p6, p2] #left
+  f5 = [p2, p6, p7, p3] #top
 
   faces = [f0, f1, f2, f3, f4, f5]
 
@@ -270,12 +290,12 @@ def box3DtoBoundingBoxFaces(box3d):
   p6 = [ values[1], values[3], values[5] ]
   p7 = [ values[1], values[2], values[5] ]
 
-  f0 = [p0, p1, p2, p3]
-  f1 = [p0, p4, p7, p3]
-  f2 = [p0, p4, p5, p1]
-  f3 = [p4, p5, p6, p7]
-  f4 = [p1, p5, p6, p2]
-  f5 = [p3, p7, p6, p2]
+  f0 = [p0, p1, p2, p3] #back
+  f1 = [p3, p7, p4, p0] #right
+  f2 = [p0, p4, p5, p1] #bottom
+  f3 = [p7, p6, p5, p4] #front
+  f4 = [p1, p5, p6, p2] #left
+  f5 = [p2, p6, p7, p3] #top
 
   faces = [f0, f1, f2, f3, f4, f5]
 
@@ -290,3 +310,4 @@ def box3DtoBoundingBoxFaces(box3d):
     polygon_string= prefix + polygon_string + '%f %f %f))' % ( point[0], point[1], point[2])
     polygons.append(WKTElement(polygon_string))
   return polygons
+'''

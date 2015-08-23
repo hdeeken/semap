@@ -183,6 +183,10 @@ class ST_Buffer(GenericFunction):
 
 #### SFCGAL IMPORT
 
+class SFCGAL_IsValid(GenericFunction):
+    name = 'SFCGAL_IsValid'
+    type = None
+
 class SFCGAL_Volume(GenericFunction):
     name = 'SFCGAL_Volume'
     type = None
@@ -209,6 +213,10 @@ class SFCGAL_Intersects(GenericFunction):
 
 class SFCGAL_Intersects3D(GenericFunction):
     name = 'SFCGAL_Intersects3D'
+    type = None
+
+class SFCGAL_Contains3D(GenericFunction):
+    name = 'SFCGAL_Contains3D'
     type = None
 
 class SFCGAL_Intersection(GenericFunction):

@@ -20,6 +20,7 @@ from tf.transformations import quaternion_matrix, random_quaternion, quaternion_
 
 from db_pose_model import *
 from spatial_db.ros_postgis_conversion import *
+from spatial_db.box3d_functions import *
 
 ### GEOMETRY TABLES
 
@@ -61,7 +62,7 @@ class GeometryModel(Base):
     return self.pose.apply(self.geometry, as_text)
 
   def getBoundingBoxValues( self, as_ = True ):
-    return box3Dvalues( db().execute( ST_3DExtent( self.transformed() ) ).scalar() )
+    return create_minmax( db().execute( ST_3DExtent( self.transformed() ) ).scalar() )
 
   def fromROSPoint2DModel(self, model):
     self.type = model.type
