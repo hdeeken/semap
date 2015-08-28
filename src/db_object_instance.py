@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('spatial_db')
+import roslib; roslib.load_manifest('semap')
 
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
@@ -25,10 +25,10 @@ from geometry_msgs.msg import PoseStamped as ROSPoseStamped
 from geometry_msgs.msg import Polygon as ROSPolygon
 from shape_msgs.msg import Mesh as ROSMesh
 from shape_msgs.msg import MeshTriangle as ROSMeshTriangle
-from spatial_db_msgs.msg import PolygonMesh as ROSPolygonMesh
-from spatial_db_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
-from spatial_db_msgs.msg import ObjectDescription as ROSObjectDescription
-from spatial_db_msgs.msg import ObjectInstance as ROSObjectInstance
+from semap_msgs.msg import PolygonMesh as ROSPolygonMesh
+from semap_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
+from semap_msgs.msg import ObjectDescription as ROSObjectDescription
+from semap_msgs.msg import ObjectInstance as ROSObjectInstance
 
 from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix

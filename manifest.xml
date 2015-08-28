@@ -1,19 +1,16 @@
 <package>
-  <description brief="spatial_db">
-
-     spatial_db
-
+  <description brief="semap">
   </description>
   <author>hdeeken</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/spatial_db</url>
+  <url>http://ros.org/wiki/semap</url>
   <depend package="rospy"/>
   <depend package="roslib"/>
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
   <depend package="visualization_msgs"/>
-  <depend package="spatial_db_msgs"/>
+  <depend package="semap_msgs"/>
 
   <rosdep name="python-sqlalchemy" />
   <rosdep name="geoalchemy2" />

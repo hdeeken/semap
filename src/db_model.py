@@ -1,4 +1,4 @@
-''' Spatial DB Model
+''' SEMAP DB Model
 
 This file joins the different parts of the spatial database model
 and provides methods to create, truncate or drop the entire database model.

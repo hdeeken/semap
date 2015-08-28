@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('spatial_db')
+import roslib; roslib.load_manifest('semap')
 
 import rospy
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
@@ -11,16 +11,16 @@ from geoalchemy2.functions import ST_Distance, ST_AsText
 from geoalchemy2.compat import buffer, bytes
 from postgis_functions import *
 
-from spatial_db_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
-from spatial_db_msgs.msg import ObjectDescription as ROSObjectDescription
-from spatial_db_msgs.msg import ObjectInstance as ROSObjectInstance
+from semap_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
+from semap_msgs.msg import ObjectDescription as ROSObjectDescription
+from semap_msgs.msg import ObjectInstance as ROSObjectInstance
 
 from numpy import radians
 from tf.transformations import quaternion_matrix, random_quaternion, quaternion_from_matrix, euler_from_matrix, euler_matrix
 
 from db_pose_model import *
-from spatial_db.ros_postgis_conversion import *
-from spatial_db.box3d_functions import *
+from semap.ros_postgis_conversion import *
+from semap.box3d_functions import *
 
 ### GEOMETRY TABLES
 

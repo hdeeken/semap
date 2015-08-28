@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('spatial_db')
+import roslib; roslib.load_manifest('semap')
 
 from db_environment import Base, db
 
