@@ -245,10 +245,66 @@ class ObjectInstance( Base ):
     extrusions = create_extrusions( db().execute( ST_3DExtent( self.relative_description.getGeometryCollection() ) ).scalar(), offset )
 
     ros = PolygonMesh3DModel()
-    ros.type = "FrontExtrusion"
+    ros.type = "FrontProjection"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[0] ) )
     models.append(ros)
 
+    ros = PolygonMesh3DModel()
+    ros.type = "BackProjection"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[1] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftProjection"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[2] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightProjection"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[3] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopProjection"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[4] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BotProjection"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[5] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[6] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[7] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[8] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[9] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[10] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BotHalfspace"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[11] ) )
+    models.append(ros)
+
+    '''
     ros = PolygonMesh3DModel()
     ros.type = "FrontRightExtrusion"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[1] ) )
@@ -290,11 +346,6 @@ class ObjectInstance( Base ):
     models.append(ros)
 
     ros = PolygonMesh3DModel()
-    ros.type = "RightExtrusion"
-    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[9] ) )
-    models.append(ros)
-
-    ros = PolygonMesh3DModel()
     ros.type = "RightTopExtrusion"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[10] ) )
     models.append(ros)
@@ -305,11 +356,6 @@ class ObjectInstance( Base ):
     models.append(ros)
 
     ros = PolygonMesh3DModel()
-    ros.type = "LeftExtrusion"
-    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[12] ) )
-    models.append(ros)
-
-    ros = PolygonMesh3DModel()
     ros.type = "LeftTopExtrusion"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[13] ) )
     models.append(ros)
@@ -317,21 +363,6 @@ class ObjectInstance( Base ):
     ros = PolygonMesh3DModel()
     ros.type = "LeftBotExtrusion"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[14] ) )
-    models.append(ros)
-
-    ros = PolygonMesh3DModel()
-    ros.type = "TopExtrusion"
-    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[15] ) )
-    models.append(ros)
-
-    ros = PolygonMesh3DModel()
-    ros.type = "BotExtrusion"
-    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[16] ) )
-    models.append(ros)
-
-    ros = PolygonMesh3DModel()
-    ros.type = "BackExtrusion"
-    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[17] ) )
     models.append(ros)
 
     ros = PolygonMesh3DModel()
@@ -373,6 +404,7 @@ class ObjectInstance( Base ):
     ros.type = "BackLeftBotExtrusion"
     ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[25] ) )
     models.append(ros)
+    '''
 
     return models
 

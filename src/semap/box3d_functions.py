@@ -127,10 +127,35 @@ def create_extrusions(box3d, o):
   y = (minmax[4] - minmax[1]) * o
   z = (minmax[5] - minmax[2]) * o
 
-  print "offsets", x, y , z
+  front_p = [sum(v) for v in zip(corners[4], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ x,  0,  0])]
+  back_p  = [sum(v) for v in zip(corners[0], [-x,  0,  0])] + [sum(v) for v in zip(corners[2], [ 0,  0,  0])]
+  left_p  = [sum(v) for v in zip(corners[1], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ 0,  y,  0])]
+  right_p = [sum(v) for v in zip(corners[0], [ 0, -y,  0])] + [sum(v) for v in zip(corners[7], [ 0,  0,  0])]
+  top_p   = [sum(v) for v in zip(corners[3], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ 0,  0,  z])]
+  bot_p   = [sum(v) for v in zip(corners[0], [ 0,  0, -z])] + [sum(v) for v in zip(corners[5], [ 0,  0,  0])]
 
-  # front
-  front           = [sum(v) for v in zip(corners[4], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ x,  0,  0])]
+  front_hs = [sum(v) for v in zip(corners[4], [ 0, -y, -z])] + [sum(v) for v in zip(corners[6], [ x,  y,  z])]
+  back_hs  = [sum(v) for v in zip(corners[0], [-x, -y, -z])] + [sum(v) for v in zip(corners[2], [ 0,  y,  z])]
+  left_hs  = [sum(v) for v in zip(corners[1], [-x,  0, -z])] + [sum(v) for v in zip(corners[6], [ x,  y,  z])]
+  right_hs = [sum(v) for v in zip(corners[0], [-x, -y, -z])] + [sum(v) for v in zip(corners[7], [ x,  0,  z])]
+  top_hs   = [sum(v) for v in zip(corners[3], [-x, -y,  0])] + [sum(v) for v in zip(corners[6], [ x,  y,  z])]
+  bot_hs   = [sum(v) for v in zip(corners[0], [-x, -y, -z])] + [sum(v) for v in zip(corners[5], [ x,  y,  0])]
+
+  geometries = []
+  geometries.append( create_extrusion_geometry( front_p ) )
+  geometries.append( create_extrusion_geometry( back_p ) )
+  geometries.append( create_extrusion_geometry( left_p ) )
+  geometries.append( create_extrusion_geometry( right_p ) )
+  geometries.append( create_extrusion_geometry( top_p ) )
+  geometries.append( create_extrusion_geometry( bot_p ) )
+  geometries.append( create_extrusion_geometry( front_hs ) )
+  geometries.append( create_extrusion_geometry( back_hs ) )
+  geometries.append( create_extrusion_geometry( left_hs ) )
+  geometries.append( create_extrusion_geometry( right_hs ) )
+  geometries.append( create_extrusion_geometry( top_hs ) )
+  geometries.append( create_extrusion_geometry( bot_hs ) )
+
+  '''
   front_right     = [sum(v) for v in zip(corners[4], [ 0, -y,  0])] + [sum(v) for v in zip(corners[7], [ x,  0,  0])]
   front_right_top = [sum(v) for v in zip(corners[7], [ 0, -y,  0])] + [sum(v) for v in zip(corners[7], [ x,  0,  z])]
   front_right_bot = [sum(v) for v in zip(corners[4], [ 0, -y, -z])] + [sum(v) for v in zip(corners[4], [ x,  0,  0])]
@@ -139,33 +164,18 @@ def create_extrusions(box3d, o):
   front_left_bot  = [sum(v) for v in zip(corners[5], [ 0,  0, -z])] + [sum(v) for v in zip(corners[5], [ x,  y,  0])]
   front_top       = [sum(v) for v in zip(corners[7], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ x,  0,  z])]
   front_bot       = [sum(v) for v in zip(corners[4], [ 0,  0, -z])] + [sum(v) for v in zip(corners[5], [ x,  0,  0])]
-
-  right           = [sum(v) for v in zip(corners[0], [ 0, -y,  0])] + [sum(v) for v in zip(corners[7], [ 0,  0,  0])]
   right_top       = [sum(v) for v in zip(corners[3], [ 0, -y,  0])] + [sum(v) for v in zip(corners[7], [ 0,  0,  z])]
   right_bot       = [sum(v) for v in zip(corners[0], [ 0, -y, -z])] + [sum(v) for v in zip(corners[4], [ 0,  0,  0])]
-
-  left            = [sum(v) for v in zip(corners[1], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ 0,  y,  0])]
   left_top        = [sum(v) for v in zip(corners[2], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ 0,  y,  z])]
   left_bot        = [sum(v) for v in zip(corners[1], [ 0,  0, -z])] + [sum(v) for v in zip(corners[5], [ 0,  y,  0])]
-
-  top             = [sum(v) for v in zip(corners[3], [ 0,  0,  0])] + [sum(v) for v in zip(corners[6], [ 0,  0,  z])]
-  bot             = [sum(v) for v in zip(corners[0], [ 0,  0, -z])] + [sum(v) for v in zip(corners[5], [ 0,  0,  0])]
-
-  back            = [sum(v) for v in zip(corners[0], [-x,  0,  0])] + [sum(v) for v in zip(corners[2], [ 0,  0,  0])]
   back_right      = [sum(v) for v in zip(corners[0], [-x, -y,  0])] + [sum(v) for v in zip(corners[3], [ 0,  0,  0])]
   back_right_top  = [sum(v) for v in zip(corners[3], [-x, -y,  0])] + [sum(v) for v in zip(corners[3], [ 0,  0,  z])]
   back_right_bot  = [sum(v) for v in zip(corners[0], [-x, -y, -z])] + [sum(v) for v in zip(corners[0], [ 0,  0,  0])]
-
   back_top        = [sum(v) for v in zip(corners[3], [-x,  0,  0])] + [sum(v) for v in zip(corners[2], [ 0,  0,  z])]
   back_bot        = [sum(v) for v in zip(corners[0], [-x,  0, -z])] + [sum(v) for v in zip(corners[1], [ 0,  0,  0])]
-
   back_left       = [sum(v) for v in zip(corners[1], [-x,  0,  0])] + [sum(v) for v in zip(corners[2], [ 0,  y,  0])]
   back_left_top   = [sum(v) for v in zip(corners[2], [-x,  0,  0])] + [sum(v) for v in zip(corners[2], [ 0,  y,  z])]
   back_left_bot   = [sum(v) for v in zip(corners[1], [-x,  0, -z])] + [sum(v) for v in zip(corners[1], [ 0,  y,  0])]
-
-  geometries = []
-  geometries.append( create_extrusion_geometry( front ) )
-
   geometries.append( create_extrusion_geometry( front_right ) )
   geometries.append( create_extrusion_geometry( front_right_top ) )
   geometries.append( create_extrusion_geometry( front_right_bot ) )
@@ -174,29 +184,19 @@ def create_extrusions(box3d, o):
   geometries.append( create_extrusion_geometry( front_left_bot ) )
   geometries.append( create_extrusion_geometry( front_top ) )
   geometries.append( create_extrusion_geometry( front_bot ) )
-
-  geometries.append( create_extrusion_geometry( right ) )
   geometries.append( create_extrusion_geometry( right_top ) )
   geometries.append( create_extrusion_geometry( right_bot ) )
-
-  geometries.append( create_extrusion_geometry( left ) )
   geometries.append( create_extrusion_geometry( left_top ) )
   geometries.append( create_extrusion_geometry( left_bot ) )
-
-  geometries.append( create_extrusion_geometry( top ) )
-  geometries.append( create_extrusion_geometry( bot ) )
-
-  geometries.append( create_extrusion_geometry( back ) )
   geometries.append( create_extrusion_geometry( back_right ) )
   geometries.append( create_extrusion_geometry( back_right_top ) )
   geometries.append( create_extrusion_geometry( back_right_bot ) )
-
   geometries.append( create_extrusion_geometry( back_top ) )
   geometries.append( create_extrusion_geometry( back_bot ) )
-
   geometries.append( create_extrusion_geometry( back_left ) )
   geometries.append( create_extrusion_geometry( back_left_top ) )
   geometries.append( create_extrusion_geometry( back_left_bot ) )
+  '''
 
   return geometries
 

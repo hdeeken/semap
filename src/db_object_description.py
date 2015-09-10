@@ -338,6 +338,67 @@ class ObjectDescription(Base):
     extrusions = create_extrusions( db().execute( ST_3DExtent( self.getGeometryCollection() ) ).scalar(), offset )
 
     ros = PolygonMesh3DModel()
+    ros.type = "FrontProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[0] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[1] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[2] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[3] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[4] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BotProjection"
+    ros.geometry = toPolygonMesh3D( extrusions[5] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[6] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[7] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[8] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[9] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[10] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BotHalfspace"
+    ros.geometry = toPolygonMesh3D( extrusions[11] )
+    models.append(ros)
+
+    '''
+    ros = PolygonMesh3DModel()
     ros.type = "FrontExtrusion"
     ros.geometry = toPolygonMesh3D( extrusions[0] )
     models.append(ros)
@@ -466,5 +527,5 @@ class ObjectDescription(Base):
     ros.type = "BackLeftBotExtrusion"
     ros.geometry = toPolygonMesh3D( extrusions[25] )
     models.append(ros)
-
+    '''
     return models
