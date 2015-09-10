@@ -132,14 +132,13 @@ class ObjectDescription(Base):
 
     return ros
 
-  ## addGeometry
-
   def addPoint2DModel( self, ros ):
     model = GeometryModel()
     model.fromROSPoint2DModel( ros )
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPose2DModel( self, ros ):
     model = GeometryModel()
@@ -147,6 +146,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPolygon2DModel( self, ros ):
     model = GeometryModel()
@@ -154,6 +154,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPoint3DModel( self, ros ):
     model = GeometryModel()
@@ -161,6 +162,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPose3DModel( self, ros ):
     model = GeometryModel()
@@ -168,6 +170,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPolygon3DModel( self, ros ):
     model = GeometryModel()
@@ -175,6 +178,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addTriangleMesh3DModel( self, ros ):
     model = GeometryModel()
@@ -182,6 +186,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   def addPolygonMesh3DModel( self, ros ):
     model = GeometryModel()
@@ -189,6 +194,7 @@ class ObjectDescription(Base):
     self.geometries.append( model )
     db().commit()
     self.updateAbstractions()
+    return model.id
 
   # Abstractions
 
