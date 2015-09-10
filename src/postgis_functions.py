@@ -17,6 +17,14 @@ class ST_GeomFromText(GenericFunction):
     name = 'ST_GeomFromText'
     type = None
 
+class ST_GeometryN(GenericFunction):
+    name = 'ST_GeometryN'
+    type = None
+
+class ST_PointN(GenericFunction):
+    name = 'ST_PointN'
+    type = None
+
 class ST_Collect(GenericFunction):
     name = 'ST_Collect'
     type = None
@@ -107,6 +115,10 @@ class ST_3DDWithin(GenericFunction):
 
 class ST_3DDFullyWithin(GenericFunction):
     name = 'ST_3DDFullyWithin'
+    type = None
+
+class ST_3DClosestPoint(GenericFunction):
+    name = 'ST_3DClosestPoint'
     type = None
 
 class ST_Touches(GenericFunction):
