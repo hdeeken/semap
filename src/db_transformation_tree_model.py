@@ -340,6 +340,16 @@ class FrameNode(Base):
       return allparents
 
     @hybrid_property
+    def all_children(self):
+      allchildren = []
+      p = self.children
+      for c in p.keys():
+        allchildren.append(p[c])
+        if p[c].children:
+          p.update( p[c].children )
+      return p
+
+    @hybrid_property
     def path_to_root(self):
       path = []
       p = self

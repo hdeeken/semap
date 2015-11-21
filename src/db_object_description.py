@@ -27,7 +27,6 @@ from db_transformation_tree_model import *
 
 from semap.box3d_functions import *
 
-
 """ ObjectDescription
 # defines the geometric appearence of a object of a specific type, and is the blueprint object instances
 # type: defines the type of object (e.g. Table)
@@ -217,12 +216,17 @@ class ObjectDescription(Base):
       model.fromROSPolygonMesh3DModel(self.toBoundingHullModel())
       self.abstractions.append( model )
 
+      #model = GeometryModel()
+      #model.fromROSPolygon2DModel( self.toConcaveHullModel() )
+      #print 'concave succeeded'
+      #self.abstractions.append( model )
+
       #for m in self.toBoundingBoxFaceModels():
       #  model = GeometryModel()
       #  model.fromROSPolygon3DModel( m )
       #  self.abstractions.append( model )
 
-      for m in self.toBoundingBoxExtrusionModels(5.0):
+      for m in self.toBoundingBoxExtrusionModels(3.50):
         model = GeometryModel()
         model.fromROSPolygonMesh3DModel( m )
         self.abstractions.append( model )
@@ -283,11 +287,25 @@ class ObjectDescription(Base):
     else:
       return db().execute( ST_AsText( SFCGAL_Convexhull( self.getGeometryCollection( True ) ) ) ).scalar()
 
+  def getConcaveHull2D( self, as_text = False ):
+    # does not work at all
+    points = db().execute( ST_DumpPoints( self.getGeometryCollection() ) ).scalar()
+    for point in points:
+      print point
+    print points
+    coll = db().execute( ST_Collect( points ) ).scalar()
+    geo = db().execute( ST_ConcaveHull( coll, 0.99, False ) ).scalar()
+    print geo
+    if not as_text:
+      return geo
+    else:
+      return db().execute( ST_AsText( ST_ConcaveHull( self.getGeometryCollection( True ) ) ) ).scalar()
+
   def getConvexHull3D( self, as_text = False):
     if not as_text:
       return db().execute( SFCGAL_Convexhull3D( self.getGeometryCollection() ) ).scalar()
     else:
-      return db().execute( ST_AsText( SFCGAL_Convexhull3D( self.getGeometryCollection( True ) ) ) ).scalar()
+      return db().execute( ST_AsText( SFCGAL_Convexhull3D( self.getGeometryCollection( Trrue ) ) ) ).scalar()
 
   def toBoundingBoxModel( self ):
     ros = PolygonMesh3DModel()
@@ -312,6 +330,12 @@ class ObjectDescription(Base):
     ros = Polygon2DModel()
     ros.type = "FootprintHull"
     ros.geometry = toPolygon2D( self.getConvexHull2D() )
+    return ros
+
+  def toConcaveHullModel( self ):
+    ros = Polygon2DModel()
+    ros.type = "ConcaveHull"
+    ros.geometry = toPolygon2D( self.getConcaveHull2D() )
     return ros
 
   def toBoundingBoxFaceModels( self ):

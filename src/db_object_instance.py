@@ -23,9 +23,6 @@ from geometry_msgs.msg import Pose2D as ROSPose2D
 from geometry_msgs.msg import Pose as ROSPose
 from geometry_msgs.msg import PoseStamped as ROSPoseStamped
 from geometry_msgs.msg import Polygon as ROSPolygon
-from shape_msgs.msg import Mesh as ROSMesh
-from shape_msgs.msg import MeshTriangle as ROSMeshTriangle
-from semap_msgs.msg import PolygonMesh as ROSPolygonMesh
 from semap_msgs.msg import Point2DModel, Point3DModel, Pose2DModel, Pose3DModel, Polygon2DModel, Polygon3DModel, TriangleMesh3DModel, PolygonMesh3DModel
 from semap_msgs.msg import ObjectDescription as ROSObjectDescription
 from semap_msgs.msg import ObjectInstance as ROSObjectInstance
@@ -96,6 +93,13 @@ class ObjectInstance( Base ):
        ids.append( child.object_instance.id )
     return ids
 
+  def getAnchestorIDs( self ):
+    ids = []
+    for key in self.frame.all_children.keys():
+      child = self.frame.all_children[key]
+      ids.append( child.object_instance.id )
+    return ids
+
   def getAPosition2D( self ):
     matrix = fromTransformToMatrix( self.frame.root_transform )
     return WKTElement( 'POINT(%f %f %f)' % ( matrix[0][3], matrix[1][3], 0.0) )
@@ -118,6 +122,9 @@ class ObjectInstance( Base ):
 
   def getAConvexHull2D( self ):
     return self.frame.apply_root_transform( self.relative_description.getConvexHull2D() )
+
+  #def getAConvexHull2D( self ):
+  #  return self.frame.apply_root_transform( self.relative_description.getConvexHull2D() )
 
   def getAConvexHull3D( self ):
     return self.frame.apply_root_transform( self.relative_description.getConvexHull3D() )
@@ -472,7 +479,7 @@ class ObjectInstance( Base ):
         #  new.fromROSPolygon3DModel( model )
         #  self.absolute_description.abstractions.append( new )
 
-        for model in self.toAbsoluteBoundingBoxExtrusionModels(5.0):
+        for model in self.toAbsoluteBoundingBoxExtrusionModels(3.5):
           new = GeometryModel()
           new.fromROSPolygonMesh3DModel( model )
           self.absolute_description.abstractions.append( new )

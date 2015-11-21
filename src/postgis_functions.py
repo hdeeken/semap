@@ -77,6 +77,14 @@ class ST_Z(GenericFunction):
     name = 'ST_Z'
     type = None
 
+class ST_Force2D(GenericFunction):
+    name = 'ST_Force2D'
+    type = None
+
+class ST_DumpPoints(GenericFunction):
+    name = 'ST_DumpPoints'
+    type = None
+
 class ST_ConcaveHull(GenericFunction):
     name = 'ST_ConcaveHull'
     type = None

@@ -105,7 +105,7 @@ class _MapperSignalEvents(object):
       pk = tuple(mapper.primary_key_from_instance(target))
       s._model_changes[pk] = (target, operation)
     else:
-      print 'everything so fucking wrong'
+      print 'everything is so fucking wrong'
 
 ###
 ### Connection
