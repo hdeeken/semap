@@ -1,0 +1,395 @@
+
+#Experimental Code Fragments from db_object_description
+
+    '''
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[0] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[1] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[2] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[3] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[4] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[5] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[6] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[7] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[8] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[9] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[10] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[11] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[12] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[13] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[14] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "TopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[15] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[16] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[17] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[18] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[19] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[20] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[21] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[22] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[23] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[24] )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( extrusions[25] )
+    models.append(ros)
+    '''
+
+#Experimental Code Fragments from db_object_instance
+
+
+ '''
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[1] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[2] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[3] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[4] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[5] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[6] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[7] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "FrontBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[8] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[10] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "RightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[11] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[13] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "LeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[14] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[18] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[19] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackRightBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[20] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[21] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[22] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[23] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftTopExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[24] ) )
+    models.append(ros)
+
+    ros = PolygonMesh3DModel()
+    ros.type = "BackLeftBotExtrusion"
+    ros.geometry = toPolygonMesh3D( self.frame.apply_root_transform( extrusions[25] ) )
+    models.append(ros)
+    '''
+
+
+  '''
+    #def __before_commit_delete__( self ):
+    #  print 'INSTANCE - BEFORE COMMIT - DELETE'
+
+    #def __before_commit_insert__( self ):
+    #  print 'INSTANCE - BEFORE COMMIT - INSERT'
+
+    #def __before_commit_update__( self ):
+    #  print 'INSTANCE - BEFORE COMMIT - UPDATE'
+
+    #def __after_commit_insert__( self ):
+    #  print 'INSTANCE - AFTER COMMIT - INSERT'
+
+    #def __after_commit_update__( self ):
+    #  print 'INSTANCE - AFTER COMMIT - UPDATE'
+  '''
+
+  #das laeuft
+  @hybrid_method
+  def tester( self ):
+    print db().execute( WKTElement( 'POINT(0.0 0.0 0.0)' ) ).scalar()
+    return db().execute( WKTElement('POINT(0.0 0.0 0.0)' ) ).scalar()
+    #return ST_Distance( self.getABox2D(), WKTElement('POINT(1.0 0.0 0.0)') ) > 0
+
+  @hybrid_method
+  def gimme( self ):
+    abc = [0, 1 , 3]
+    print self.frame, 'is da id'
+    frame = self.frame
+    print frame.id
+    return abc
+
+  @hybrid_method
+  def tester2( self ):
+  #  matrix = fromStringToMatrix(self.frame.transform)
+
+    a = self.gimme()[0]
+    b = giveme()[1]
+    c= giveme()[2]
+    return  db().execute(WKTElement('POINT(%f %f %f)' % (a, b ,b))).scalar()
+    #return  db().execute(WKTElement('POINT(%f %f %f)' % (matrix[0][3], matrix[1][3], 0.0)))
+
+def giveme():
+    abc = [0, 1 , 3]
+    return abc
+
+## Spatial Relations.py
+
+###
+### OTHER OPERATORS
+###
+
+'''
+def get_objects_on_object( req ):
+
+  rospy.logdebug( "SEMAP DB SRVs: get_objects_on" )
+
+  res = GetObjectsOnObjectResponse()
+
+  ref_obj = aliased( ObjectInstance )
+  ref_geo = aliased( GeometryModel )
+  ref_top = aliased( GeometryModel )
+
+  tar_obj = aliased( ObjectInstance )
+  tar_geo = aliased( GeometryModel )
+
+  if req.target_object_types:
+    tar_obj_ids = any_obj_types_ids(tar_obj, req.target_object_types).all()
+  else:
+    tar_obj_ids = any_obj_ids(tar_obj).all()
+
+  pairs = db().query( ref_obj.id, tar_obj.id ).\
+              filter( ref_obj.id = req.reference_object_id,
+                     ref_obj.absolute_description_id == ref_geo.abstraction_desc,
+                     ref_geo.type == "BoundingBox", \
+                     ref_obj.id.in_( ref_obj_ids ),
+                     ref_obj.absolute_description_id == ref_top.abstraction_desc,
+                     ref_top.type == "TopProjection", \
+                     tar_obj.id.in_( tar_obj_ids ),
+                     tar_obj.absolute_description_id == tar_geo.abstraction_desc, tar_geo.type == "BoundingBox", \
+                     SFCGAL_Contains3D( ref_top.geometry, tar_geo.geometry),
+                     SFCGAL_Distance3D( ref_geo.geometry, tar_geo.geometry) < req.threshold).all()
+
+  for ref_id, tar_id in pairs:
+    pair = ObjectPair()
+    pair.reference_id = ref_id
+    pair.target_id = tar_id
+    pair.relations.append("supports")
+    res.pairs.append(pair)
+    pair = ObjectPair()
+    pair.reference_id = tar_id
+    pair.target_id = ref_id
+    pair.relations.append("is-on")
+    res.pairs.append(pair)
+
+  return res
+'''
+
+'''
+"FrontExtrusion"
+"FrontRightExtrusion"
+"FrontRightTopExtrusion"
+"FrontRightBotExtrusion"
+"FrontLeftExtrusion"
+"FrontLeftTopExtrusion"
+"FrontLeftBotExtrusion"
+"FrontTopExtrusion"
+"FrontBotExtrusion"
+"RightExtrusion"
+"RightTopExtrusion"
+"RightBotExtrusion"
+"LeftExtrusion"
+"LeftTopExtrusion"
+"LeftBotExtrusion"
+"TopExtrusion"
+"BotExtrusion"
+"BackExtrusion"
+"BackRightExtrusion"
+"BackRightTopExtrusion"
+"BackRightBotExtrusion"
+"BackTopExtrusion"
+"BackBotExtrusion"
+"BackLeftExtrusion"
+"BackLeftTopExtrusion"
+"BackLeftBotExtrusion"
+halfspace_relations["infront-of"] = \
+  ["FrontExtrusion", "FrontLeftExtrusion", "FrontRightExtrusion", "FrontTopExtrusion", "FrontBotExtrusion", "FrontLeftTopExtrusion", "FrontLeftBotExtrusion", "FrontRightTopExtrusion", "FrontRightBotExtrusion"]
+halfspace_relations["behind-of"] = \
+  ["BackExtrusion", "BackLeftExtrusion", "BackRightExtrusion", "BackTopExtrusion", "BackBotExtrusion", "BackLeftTopExtrusion", "BackLeftBotExtrusion", "BackRightTopExtrusion", "BackRightBotExtrusion"]
+halfspace_relations["left-of"] = \
+  ["FrontLeftExtrusion", "FrontLeftTopExtrusion", "FrontLeftBotExtrusion", "LeftExtrusion", "LeftTopExtrusion", "LeftBotExtrusion", "BackLeftExtrusion", "BackLeftTopExtrusion", "BackLeftBotExtrusion"]
+halfspace_relations["right-of"] = \
+  ["FrontRightExtrusion", "FrontRightTopExtrusion", "FrontRightBotExtrusion", "RightExtrusion", "RightTopExtrusion", "RightBotExtrusion", "BackRightExtrusion", "BackRightTopExtrusion", "BackRightBotExtrusion"]
+halfspace_relations["above-of"] = \
+  ["FrontRightTopExtrusion", "FrontLeftTopExtrusion", "FrontTopExtrusion", "RightTopExtrusion", "LeftTopExtrusion", "TopExtrusion", "BackRightTopExtrusion", "BackTopExtrusion", "LeftTopExtrusion"]
+halfspace_relations["below-of"] = \
+  ["FrontRightBotExtrusion", "FrontLeftBotExtrusion", "FrontBotExtrusion", "RightBotExtrusion", "LeftBotExtrusion", "BotExtrusion", "BackRightBotExtrusion", "BackBotExtrusion", "LeftBotExtrusion"]
+for relation in halfspace_relations.keys():
+  strict = False
+  relaxed = False
+  for region in halfspace_relations[relation]:
+
+    strict = strict or db().query(  SFCGAL_Contains3D( geo1.geometry, geo2.geometry) ).\
+          filter(obj1.id == req.reference_id, \
+                 obj1.absolute_description_id == geo1.abstraction_desc, geo1.type == region, \
+                 obj2.id ==  req.target_id, \
+                 obj2.absolute_description_id == geo2.abstraction_desc, geo2.type == "BoundingBox" ).scalar()
+
+    relaxed = relaxed or db().query(  SFCGAL_Intersects3D( geo1.geometry, geo2.geometry) ).\
+          filter(obj1.id == req.reference_id, \
+                 obj1.absolute_description_id == geo1.abstraction_desc, geo1.type == region, \
+                 obj2.id ==  req.target_id, \
+                 obj2.absolute_description_id == geo2.abstraction_desc, geo2.type == "BoundingBox" ).scalar()
+'''
